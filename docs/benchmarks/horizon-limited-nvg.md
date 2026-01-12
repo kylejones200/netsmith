@@ -94,7 +94,7 @@ pub fn nvg_degrees_sweepline(
 
 **Usage:**
 ```python
-from ts2net_rs import nvg_degrees_sweepline
+from netsmith_rs import degree_rust
 
 # Unbounded (original behavior)
 degrees = nvg_degrees_sweepline(time_series, None)

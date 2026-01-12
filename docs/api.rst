@@ -3,103 +3,80 @@ API Reference
 
 Main Package
 ------------
-.. automodule:: ts2net
+.. automodule:: netsmith
    :members:
    :undoc-members:
    :show-inheritance:
 
-Graph Builders
---------------
-.. automodule:: ts2net.api
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Core
-----
-.. automodule:: ts2net.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Visualization
--------------
-.. automodule:: ts2net.viz
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Unified Graph API
------------------
-.. automodule:: ts2net.viz.graph
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Multivariate
-------------
-.. automodule:: ts2net.multivariate
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Distances
+API Layer
 ---------
-.. automodule:: ts2net.distances
+.. automodule:: netsmith.api
    :members:
    :undoc-members:
    :show-inheritance:
 
-I/O
----
-.. automodule:: ts2net.io_polars
+.. automodule:: netsmith.api.load
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: ts2net.io_adapters
+.. automodule:: netsmith.api.compute
    :members:
    :undoc-members:
    :show-inheritance:
 
-BSTS (Bayesian Structural Time Series)
---------------------------------------
-.. automodule:: ts2net.bsts
+.. automodule:: netsmith.api.validate
    :members:
    :undoc-members:
    :show-inheritance:
 
-Temporal CNN
+Core Layer
+----------
+.. automodule:: netsmith.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: netsmith.core.graph
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: netsmith.core.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: netsmith.core.paths
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Engine Layer
 ------------
-.. automodule:: ts2net.temporal_cnn
+.. automodule:: netsmith.engine
    :members:
    :undoc-members:
    :show-inheritance:
 
-CLI
----
-.. automodule:: ts2net.cli
+.. automodule:: netsmith.engine.contracts
    :members:
    :undoc-members:
    :show-inheritance:
 
-Configuration
--------------
-.. automodule:: ts2net.config
+.. automodule:: netsmith.engine.dispatch
    :members:
    :undoc-members:
    :show-inheritance:
 
-Factory
--------
-.. automodule:: ts2net.factory
+Apps Layer
+----------
+.. automodule:: netsmith.apps
    :members:
    :undoc-members:
    :show-inheritance:
 
-Spatial
--------
-.. automodule:: ts2net.core.spatial
+.. automodule:: netsmith.apps.cli
    :members:
    :undoc-members:
    :show-inheritance:

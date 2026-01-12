@@ -44,7 +44,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ --cov=ts2net --cov-report=xml --cov-report=term
+          pytest tests/ --cov=netsmith --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -34,7 +34,7 @@ Computing degrees in Rust vs Python:
 
 **Old API (returns edges):**
 ```rust
-// In ts2net_rs/src/graphs/visibility.rs
+// In rust/crates/netsmith-core/src/degree.rs
 #[pyfunction]
 pub fn hvg_edges(y: &PyArray1<f64>) -> Vec<(usize, usize)> {
     // Generate edges
@@ -51,7 +51,7 @@ degrees = compute_degrees_from_edges(edges, n)  # Python loop
 
 **New API (returns degrees directly):**
 ```rust
-// In ts2net_rs/src/graphs/visibility.rs
+// In rust/crates/netsmith-core/src/degree.rs
 #[pyfunction]
 pub fn hvg_degrees(y: &PyArray1<f64>) -> Array1<usize> {
     let n = y.len();
@@ -85,7 +85,7 @@ degrees = hvg_degrees(time_series)  # Small transfer, no post-processing
 
 ## Implementation Details
 
-**Added to `ts2net_rs/src/graphs/visibility.rs`:**
+**Added to `rust/crates/netsmith-core/src/degree.rs`:**
 
 1. **`hvg_degrees(y: &Array1<f64>) -> Array1<usize>`**
    - Stack-based O(n) algorithm
@@ -97,7 +97,7 @@ degrees = hvg_degrees(time_series)  # Small transfer, no post-processing
    - Bounds edges per node when `limit` is set
    - Memory-safe for long series
 
-**Exposed to Python in `ts2net_rs/src/lib.rs`:**
+**Exposed to Python in `rust/crates/netsmith-py/src/lib.rs`:**
 ```rust
 m.add_function(wrap_pyfunction!(hvg_degrees, m)?)?;
 m.add_function(wrap_pyfunction!(nvg_degrees_sweepline, m)?)?;
@@ -105,7 +105,7 @@ m.add_function(wrap_pyfunction!(nvg_degrees_sweepline, m)?)?;
 
 **Usage pattern:**
 ```python
-from ts2net_rs import hvg_degrees, nvg_degrees_sweepline
+from netsmith_rs import degree_rust
 
 # Compute degrees directly
 degrees_hvg = hvg_degrees(time_series)

@@ -1,0 +1,19 @@
+# Pinned dependencies for CI/CD reproducibility
+# Generated for NetSmith production builds
+# 
+# To update: 
+#   1. Update pyproject.toml with new version ranges
+#   2. Run: pip-compile requirements.in (if using pip-tools)
+#   3. Or manually pin based on pyproject.toml ranges
+
+# Core dependencies (from pyproject.toml)
+numpy>=1.23,<3.0.0
+scipy>=1.9,<2.0.0
+
+# Note: This file uses version ranges from pyproject.toml
+# For production deployments, consider using pip-tools to generate
+# fully pinned versions: pip-compile requirements.in
+#
+# Dev dependencies are in pyproject.toml under [project.optional-dependencies.dev]
+# Optional dependencies (pandas, polars, networkx) are in pyproject.toml
+

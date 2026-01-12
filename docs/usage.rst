@@ -1,12 +1,12 @@
 Usage Guide
-==========
+===========
 
 Install
 -------
 
 .. code-block:: bash
 
-   pip install ts2net
+   pip install netsmith
 
 Quick start
 -----------
@@ -14,23 +14,25 @@ Quick start
 .. code-block:: python
 
    import numpy as np
-   from ts2net import HVG, graph_summary
+   from netsmith.core import Graph
+   from netsmith.core.metrics import degree, clustering
 
-   x = np.sin(np.linspace(0, 12*np.pi, 800)) + 0.15 * np.random.randn(800)
+   # Create a simple graph
+   edges = [(0, 1), (1, 2), (2, 0)]  # Triangle
+   graph = Graph(edges=edges, n_nodes=3, directed=False)
    
-   hvg = HVG()
-   hvg.build(x)
+   # Compute metrics
+   degrees = degree(graph)
+   clustering_coeffs = clustering(graph)
    
-   print(f"Nodes: {hvg.n_nodes}, Edges: {hvg.n_edges}")
-   G = hvg.as_networkx()
-   print(graph_summary(G))
+   print(f"Degrees: {degrees}")
+   print(f"Clustering: {clustering_coeffs}")
 
 CLI
 ---
 
 .. code-block:: bash
 
-   ts2net to-parquet --name my_graph --output out_dir edges.csv
-   ts2net from-parquet --graphml out.graphml out_dir/graph_meta.json
-   ts2net spatial-weights radius coords.txt --radius 1.0 --output weights.txt
-   ts2net spatial-weights knn coords.txt --k 5 --output weights_knn.txt
+   netsmith compute degree --input edges.csv --output degree.csv
+   netsmith compute pagerank --input edges.csv --output pr.csv --alpha 0.85
+   netsmith compute communities --input edges.csv --output communities.csv

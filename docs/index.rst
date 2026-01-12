@@ -1,28 +1,27 @@
-ts2net documentation
-=====================
+netsmith documentation
+======================
 
-A Python implementation of **time series to network** methods for analyzing time series data through network science.
+Fast network analysis library with Rust acceleration, focused on pure network analysis.
 
 Overview
 --------
 
-ts2net converts time series into networks using various methods:
+netsmith provides high-performance network analysis algorithms with a clean 4-layer architecture:
 
-- **Visibility Graphs**: Horizontal Visibility Graph (HVG) and Natural Visibility Graph (NVG)
-- **Recurrence Networks**: Phase space embedding with recurrence analysis
-- **Transition Networks**: Symbolic dynamics and state transitions
-- **Multivariate Networks**: Networks from multiple time series using distance metrics
-- **Ordinal Partition Networks**: State space partitioning methods
+- **Core Layer**: Pure math, no I/O, no global state
+- **Engine Layer**: Performance and execution (Python and Rust backends)
+- **API Layer**: Public surface, small and consistent
+- **Apps Layer**: Opinionated use cases and CLI tools
 
 Key Features
 ------------
 
 - Fast implementations with Rust acceleration
-- Multiple network construction methods
-- Comprehensive visualization tools
-- Multivariate time series support
-- Windowed analysis for long time series
-- Integration with NetworkX for network analysis
+- Dual backend system (Python reference + Rust accelerated)
+- Clean 4-layer architecture
+- Comprehensive graph metrics and algorithms
+- Integration with NetworkX for advanced analysis
+- Type-safe data contracts
 
 Quick Start
 -----------
@@ -30,19 +29,16 @@ Quick Start
 .. code-block:: python
 
    import numpy as np
-   from ts2net import HVG, graph_summary
+   from netsmith.core import Graph
+   from netsmith.core.metrics import degree
 
-   # Create a time series
-   x = np.sin(np.linspace(0, 12*np.pi, 800)) + 0.15 * np.random.randn(800)
+   # Create a simple graph
+   edges = [(0, 1), (1, 2), (2, 0)]  # Triangle
+   graph = Graph(edges=edges, n_nodes=3, directed=False)
    
-   # Build a Horizontal Visibility Graph
-   hvg = HVG()
-   hvg.build(x)
-   
-   # Get network statistics
-   print(f"Nodes: {hvg.n_nodes}, Edges: {hvg.n_edges}")
-   G = hvg.as_networkx()
-   print(graph_summary(G))
+   # Compute degree sequence
+   degrees = degree(graph)
+   print(f"Degrees: {degrees}")
 
 Contents:
 

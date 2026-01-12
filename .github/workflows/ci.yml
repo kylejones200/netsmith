@@ -31,8 +31,24 @@ jobs:
           pip install numba tslearn pynndescent pyreadr || true
           # Verify torch is installed
           python -c "import torch; print(f'✓ PyTorch {torch.__version__} (CPU-only) installed')"
+      - name: Lint with black
+        run: black --check src/ tests/
+        continue-on-error: true
+      
+      - name: Lint with isort
+        run: isort --check-only src/ tests/
+        continue-on-error: true
+      
+      - name: Lint with flake8
+        run: flake8 src/ tests/
+        continue-on-error: true
+      
+      - name: Type check with mypy
+        run: mypy src/netsmith
+        continue-on-error: true
+      
       - name: Run tests
         env:
           PYTHONHASHSEED: "0"
         run: |
-          pytest -q
+          pytest -q --cov=netsmith --cov-report=term-missing
