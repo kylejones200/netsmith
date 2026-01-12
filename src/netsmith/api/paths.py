@@ -124,4 +124,3 @@ def reachability(graph: Graph, source: int, backend: Backend = "auto") -> NDArra
     # Use the actual dtype's max value, not hardcoded int64.max
     max_val = np.iinfo(dist.dtype).max
     return (dist != max_val).astype(bool)
-

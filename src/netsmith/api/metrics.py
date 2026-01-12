@@ -102,4 +102,3 @@ def components(
     if return_labels:
         return labels
     return n_components
-

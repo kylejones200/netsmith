@@ -11,7 +11,7 @@ from ..contracts import EdgeList
 def communities_python(edges: EdgeList, method: str = "louvain") -> NDArray[np.int64]:
     """
     Compute community assignments (Python backend).
-    
+
     Note: This is a placeholder. Community detection is currently implemented
     in core.community using NetworkX. This function is not used by the current
     implementation.

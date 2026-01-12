@@ -34,6 +34,5 @@ def walk_metrics(graph: Graph, length: int = 1) -> Dict:
         Dictionary with walk metrics
     """
     raise NotImplementedError(
-        "walk_metrics is not yet implemented. "
-        "This feature is planned for a future release."
+        "walk_metrics is not yet implemented. " "This feature is planned for a future release."
     )

@@ -65,9 +65,13 @@ class Graph:
             if not isinstance(edge, (tuple, list)):
                 raise ValidationError(f"Edge {i} must be tuple or list, got {type(edge)}")
             if len(edge) < 2:
-                raise ValidationError(f"Edge {i} must have at least 2 elements (u, v), got {len(edge)}")
+                raise ValidationError(
+                    f"Edge {i} must have at least 2 elements (u, v), got {len(edge)}"
+                )
             if len(edge) > 3:
-                raise ValidationError(f"Edge {i} must have at most 3 elements (u, v, weight), got {len(edge)}")
+                raise ValidationError(
+                    f"Edge {i} must have at most 3 elements (u, v, weight), got {len(edge)}"
+                )
 
             u, v = edge[0], edge[1]
             if not isinstance(u, (int, np.integer)):

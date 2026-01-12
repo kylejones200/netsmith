@@ -25,8 +25,7 @@ def distributions(data: NDArray, method: str = "empirical") -> dict:
         Dictionary with distribution parameters
     """
     raise NotImplementedError(
-        "distributions is not yet implemented. "
-        "This feature is planned for a future release."
+        "distributions is not yet implemented. " "This feature is planned for a future release."
     )
 
 
