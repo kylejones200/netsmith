@@ -73,7 +73,7 @@ def check_pyproject_toml(project_root):
 
 def main():
     """Run all validation checks."""
-    logger.info("ts2net Release Validation")
+    logger.info("NetSmith Release Validation")
     
     project_root = Path(__file__).parent.parent
     all_checks_passed = True

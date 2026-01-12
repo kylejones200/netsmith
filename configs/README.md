@@ -1,13 +1,14 @@
 # Configuration Files
 
-YAML-based configuration for ts2net pipeline execution.
+YAML-based configuration (historical - from previous project).
 
-## Usage
+Note: These configuration files were for the previous time-series-to-network project and may not be applicable to NetSmith's network analysis focus.
 
-**CLI (Recommended):**
+## Usage (Historical)
+
+**CLI (Historical):**
 ```bash
-ts2net run configs/spain_smart_meters.yaml
-ts2net run configs/morocco_zones.yaml --validate-only  # Validate only
+# This functionality is from the previous project
 ```
 
 **Direct script:**

@@ -9,8 +9,9 @@ Canonical internal edge representation:
 - n_nodes: int (optional but preferred)
 """
 
-from typing import Optional, Tuple
 from dataclasses import dataclass
+from typing import Optional, Tuple
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -18,12 +19,13 @@ from numpy.typing import NDArray
 @dataclass
 class EdgeList:
     """Canonical edge list representation."""
+
     u: NDArray[np.int64]  # Source nodes
     v: NDArray[np.int64]  # Destination nodes
     w: Optional[NDArray[np.float64]] = None  # Edge weights
     directed: bool = False
     n_nodes: Optional[int] = None
-    
+
     def __post_init__(self):
         """Validate edge list."""
         if len(self.u) != len(self.v):
@@ -37,7 +39,7 @@ class EdgeList:
 @dataclass
 class GraphData:
     """Graph data container."""
+
     edges: EdgeList
     node_attrs: Optional[dict] = None
     edge_attrs: Optional[dict] = None
-

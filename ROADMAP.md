@@ -16,8 +16,8 @@
 
 
 ### Causal Inference & Network-Based Causality
-- **Transfer entropy networks**: ✅ **COMPLETED** - `transfer_entropy()` computes information-theoretic causality between time series pairs, `transfer_entropy_network()` constructs directed networks based on transfer entropy values. Supports discrete binning and k-NN methods. Exported in `ts2net.causal` module. Comprehensive tests added (`tests/test_transfer_entropy.py`).
-- **Conditional transfer entropy**: ✅ **COMPLETED** - `conditional_transfer_entropy()` accounts for confounding variables in multi-variable causal inference. Exported in `ts2net.causal` module.
+- **Transfer entropy networks**: Historical feature (from previous project)
+- **Conditional transfer entropy**: Historical feature (from previous project)
 - **Granger causality networks**: Build networks from Granger causality tests (linear and nonlinear variants)
 - **Causal network metrics**: Path-based causality measures, causal strength, and directionality indices
 - **Time-lagged network analysis**: Networks with temporal delays to capture causal relationships
@@ -36,7 +36,7 @@
 
 ### Statistical & ML Integrations
 - **Feature pipeline**: Extract network statistics and feed into ML workflows (classification/regression)
-- **Benchmark comparisons**: Compare ts2net features to baseline methods on standard datasets
+- **Benchmark comparisons**: Compare NetSmith features to baseline methods on standard datasets
 - **Feature selection routines**: Tailored to network statistics
 
 ### Core Method Enhancements
@@ -49,12 +49,12 @@
 - **Fuzz tests**: Random time series to catch numerical errors
 
 ### Documentation & Tutorials
-- **Gallery of examples**: Show how ts2net solves real tasks (anomaly detection, clustering, comparison)
+- **Gallery of examples**: Show how NetSmith solves real tasks (network analysis, clustering, comparison)
 - **Quick start notebooks**: On common platforms (Binder, Colab)
 - **Comparison guides**: To alternative libraries
 
 ### Ecosystem & Interoperability
-- **Scikit-learn wrappers**: Use ts2net features inside sklearn pipelines
+- **Scikit-learn wrappers**: Use NetSmith features inside sklearn pipelines
 - **Graph ML adapters**: PyTorch Geometric, DGL integration
 - **PyData materials**: Talks and curated lists of downstream users
 

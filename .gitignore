@@ -20,18 +20,12 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
-.pytest_cache/
 
-# Rust
-/target/
-**/*.rs.bk
-Cargo.lock
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
 
 # IDE
 .vscode/
@@ -40,154 +34,32 @@ Cargo.lock
 *.swo
 *~
 
-# Environment variables
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Local development
-*.local
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-target/
-**/*.so
-**/*.dylib
-**/*.dll
-
-# Logs
-logs/
-*.log
-
-# Virtual environments
-venv/
-ENV/
-
-# Distribution / packaging
-.Python
-build/
-*.pyc
-*.pyo
-*.pyd
-
-# Unit test / coverage reports
+# Testing
+.pytest_cache/
+.coverage
 htmlcov/
 .tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
 .hypothesis/
-.pytest_cache/
 
-# Local development settings
-.local-settings.json
+# Jupyter
+.ipynb_checkpoints/
 
-# Project specific (add your own below)
-data/
-!data/README.md
+# Rust
+target/
+Cargo.lock
 
-# Build outputs
-/ts2net_rs/target/
-/ts2net_rs/Cargo.lock
-
-# Python build artifacts
-/build/
-/dist/
-/ts2net_rs/build/
-
-# Python virtual environment
-/.venv/
-
-# Jupyter notebooks (but allow example notebooks)
-*.ipynb
-!examples/*.ipynb
-
-# VS Code
-.vscode/
-
-# PyCharm
-.idea/
-*.iml
-
-# macOS
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
 Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
 
-# Linux
-*~
-
-# Project specific data
-*.npy
-*.npz
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-
-# Experimental results (large files)
+# Experiments (large data files)
 experiments/
 
-# Generated images (should be in examples/images/)
-/*.png
-/*.jpg
-/*.jpeg
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# Documentation/notes files
-opn.md
-
-# Logs and databases
-*.log
-*.sql
-*.sqlite
-
-# Local development
+# Environment variables
+.env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local Netlify folder
-.netlify
-.cursor
-.parity
-
-# Documentation build
-docs/_build/
-
-simple_cnn.md
-
-wip/
-
-.cursor/

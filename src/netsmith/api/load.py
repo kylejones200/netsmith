@@ -3,6 +3,7 @@ Load edge lists from various formats: pandas, polars, parquet, csv.
 """
 
 from typing import Optional, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -15,11 +16,11 @@ def load_edges(
     v_col: Optional[str] = None,
     w_col: Optional[str] = None,
     directed: bool = False,
-    n_nodes: Optional[int] = None
+    n_nodes: Optional[int] = None,
 ) -> EdgeList:
     """
     Load edges from various sources.
-    
+
     Parameters
     ----------
     source : str, array, DataFrame
@@ -34,7 +35,7 @@ def load_edges(
         Whether graph is directed
     n_nodes : int, optional
         Number of nodes (if not provided, inferred from edges)
-    
+
     Returns
     -------
     edges : EdgeList
@@ -48,41 +49,46 @@ def load_edges(
         v = source[:, 1].astype(np.int64)
         w = source[:, 2].astype(np.float64) if source.shape[1] > 2 else None
         return EdgeList(u=u, v=v, w=w, directed=directed, n_nodes=n_nodes)
-    
+
     # Handle string (file path)
     if isinstance(source, str):
-        if source.endswith('.parquet'):
+        if source.endswith(".parquet"):
             try:
                 import polars as pl
+
                 df = pl.read_parquet(source)
             except ImportError:
                 import pandas as pd
+
                 df = pd.read_parquet(source)
                 df = pl.from_pandas(df)
-        elif source.endswith('.csv'):
+        elif source.endswith(".csv"):
             try:
                 import polars as pl
+
                 df = pl.read_csv(source)
             except ImportError:
                 import pandas as pd
+
                 df = pd.read_csv(source)
                 df = pl.from_pandas(df)
         else:
             raise ValueError(f"Unsupported file format: {source}")
-        
+
         # Extract columns
         if u_col is None or v_col is None:
             raise ValueError("u_col and v_col must be specified for file sources")
-        
+
         u = df[u_col].to_numpy().astype(np.int64)
         v = df[v_col].to_numpy().astype(np.int64)
         w = df[w_col].to_numpy().astype(np.float64) if w_col else None
-        
+
         return EdgeList(u=u, v=v, w=w, directed=directed, n_nodes=n_nodes)
-    
+
     # Handle pandas DataFrame
     try:
         import pandas as pd
+
         if isinstance(source, pd.DataFrame):
             if u_col is None or v_col is None:
                 raise ValueError("u_col and v_col must be specified for DataFrame")
@@ -92,10 +98,11 @@ def load_edges(
             return EdgeList(u=u, v=v, w=w, directed=directed, n_nodes=n_nodes)
     except ImportError:
         pass
-    
+
     # Handle polars DataFrame
     try:
         import polars as pl
+
         if isinstance(source, pl.DataFrame):
             if u_col is None or v_col is None:
                 raise ValueError("u_col and v_col must be specified for DataFrame")
@@ -105,6 +112,5 @@ def load_edges(
             return EdgeList(u=u, v=v, w=w, directed=directed, n_nodes=n_nodes)
     except ImportError:
         pass
-    
-    raise ValueError(f"Unsupported source type: {type(source)}")
 
+    raise ValueError(f"Unsupported source type: {type(source)}")

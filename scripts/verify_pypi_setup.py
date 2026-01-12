@@ -52,7 +52,7 @@ def check_pyproject():
     content = pyproject_path.read_text()
     
     checks = {
-        "Has project name": 'name = "ts2net"' in content or "name = 'ts2net'" in content,
+        "Has project name": 'name = "netsmith"' in content or "name = 'netsmith'" in content,
         "Has version": 'version =' in content,
         "Has build-system": '[build-system]' in content,
     }
@@ -129,7 +129,7 @@ def main():
         print(f"  Repository name: {repo}")
     print(f"  Workflow filename: publish-pypi.yml")
     print(f"  Environment name: pypi")
-    print(f"\n  PyPI URL: https://pypi.org/manage/project/ts2net/settings/publishing/")
+    print(f"\n  PyPI URL: https://pypi.org/manage/project/netsmith/settings/publishing/")
     
     print("\n" + "=" * 60)
     if workflow_ok and pyproject_ok:

@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2024-12-20
 
 ### Added
-- BSTS (Bayesian Structural Time Series) decomposition and residual topology analysis
-  - `ts2net.bsts` module with `decompose()`, `features()`, and `BSTSSpec`
+- BSTS (Bayesian Structural Time Series) decomposition and residual topology analysis (historical feature from previous project)
+  - BSTS module with `decompose()`, `features()`, and `BSTSSpec`
   - Structural decomposition (level, trend, seasonal components)
   - Residual network analysis (HVG, NVG, transition on residuals)
   - Windowed analysis support for long series
@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project structure optimized for distribution
 - Documentation setup with Sphinx
 
-[Unreleased]: https://github.com/kylejones200/ts2net/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/kylejones200/ts2net/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/kylejones200/ts2net/releases/tag/v0.4.0
+[Unreleased]: https://github.com/kylejones200/netsmith/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/kylejones200/netsmith/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/kylejones200/netsmith/releases/tag/v0.4.0
 

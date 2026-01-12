@@ -3,7 +3,8 @@ CLI implementation: netsmith as a command-line tool.
 """
 
 import click
-from ...api.compute import degree, pagerank, communities
+
+from ...api.compute import communities, degree, pagerank
 from ...api.load import load_edges
 
 
@@ -25,8 +26,9 @@ def compute_degree(input, out, u_col, v_col, w_col, directed, backend):
     """Compute degree sequence."""
     edges = load_edges(input, u_col=u_col, v_col=v_col, w_col=w_col, directed=directed)
     degrees = degree(edges, backend=backend)
-    
+
     import pandas as pd
+
     df = pd.DataFrame({"node": range(len(degrees)), "degree": degrees})
     df.to_parquet(out, index=False)
     click.echo(f"Computed degrees for {len(degrees)} nodes")
@@ -43,8 +45,9 @@ def compute_pagerank(input, out, u_col, v_col, alpha, backend):
     """Compute PageRank."""
     edges = load_edges(input, u_col=u_col, v_col=v_col)
     pr = pagerank(edges, alpha=alpha, backend=backend)
-    
+
     import pandas as pd
+
     df = pd.DataFrame({"node": range(len(pr)), "pagerank": pr})
     df.to_parquet(out, index=False)
     click.echo(f"Computed PageRank for {len(pr)} nodes")
@@ -59,8 +62,9 @@ def compute_communities(input, out, method, backend):
     """Compute community assignments."""
     edges = load_edges(input)
     comms = communities(edges, method=method, backend=backend)
-    
+
     import pandas as pd
+
     df = pd.DataFrame({"node": range(len(comms)), "community": comms})
     df.to_parquet(out, index=False)
     click.echo(f"Computed communities for {len(comms)} nodes")
@@ -68,4 +72,3 @@ def compute_communities(input, out, method, backend):
 
 if __name__ == "__main__":
     main()
-

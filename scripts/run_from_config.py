@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-YAML-based pipeline runner for ts2net.
+YAML-based pipeline runner (historical - from previous project).
+
+This script is for the previous time-series-to-network project and may not be
+applicable to NetSmith's network analysis focus.
 
 Loads configuration from YAML, validates it, and runs the analysis pipeline.
 Keeps "what" in YAML, "how" in Python.
@@ -23,12 +26,15 @@ try:
 except ImportError:
     HAS_POLARS = False
 
+# NOTE: This script references functionality from the previous project
+# These imports may not be available in NetSmith
 try:
-    from ts2net.io_polars import load_series_from_parquet_polars
-    from ts2net.config import PipelineConfig
-    from ts2net.factory import build_graph_from_config
+    # Historical imports - may need updating for NetSmith
+    # from netsmith.io import load_data  # Update as needed
+    pass
 except ImportError as e:
     logging.error(f"Import error: {e}")
+    logging.error("Note: This script is from the previous project and may need updating for NetSmith")
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -59,7 +65,7 @@ def load_series(config: PipelineConfig) -> Dict[str, np.ndarray]:
         )
     else:
         # Fallback to pandas (would need to implement)
-        raise ImportError("Polars required for data loading. Install with: pip install ts2net[polars]")
+        raise ImportError("Polars required for data loading. Install with: pip install polars")
     
     logger.info(f"Loaded {len(series)} series")
     return series
@@ -79,7 +85,9 @@ def process_series(series_id: str, series_data: np.ndarray, config: PipelineConf
     
     if bsts_config.enabled:
         try:
-            from ts2net.bsts import features, BSTSSpec
+            # Historical import - may need updating for NetSmith
+            # from netsmith.features import features, FeatureSpec  # Update as needed
+            pass
             
             # Build BSTS spec from config
             bsts_spec = BSTSSpec(

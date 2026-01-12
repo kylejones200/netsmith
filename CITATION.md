@@ -1,16 +1,16 @@
-# Citing ts2net
+# Citing NetSmith
 
-## Python ts2net
+## NetSmith
 
-If you use this Python implementation in your research, please cite:
+If you use NetSmith in your research, please cite:
 
 ```bibtex
-@software{ts2net_python,
-  title = {ts2net: Time Series to Networks in Python},
+@software{netsmith,
+  title = {NetSmith: Fast Network Analysis Library},
   author = {Jones, K.},
   year = {2025},
-  url = {https://github.com/kylejones200/ts2net},
-  note = {Python implementation with univariate and multivariate analysis}
+  url = {https://github.com/kylejones200/netsmith},
+  note = {Network analysis library with Rust acceleration}
 }
 ```
 
@@ -38,19 +38,7 @@ The **multivariate functionality** in this Python package is directly inspired b
 
 ## Acknowledgments
 
-### Multivariate Analysis (Multiple Time Series → Graph)
-The distance functions (`tsdist_*`) and network construction methods (`net_knn`, `net_enn`, `net_weighted`) implement the API designed by Leonardo N. Ferreira in the R ts2net package. 
-
-
-This Python implementation:
-
-- Matches the R API for distance functions and network builders
-- Adds Numba acceleration for performance (10-200x speedups)
-- Extends with parallel processing using joblib
-- Provides HPC batch processing support
-
-### Univariate Analysis (Single Time Series → Graph)
-The univariate methods (HVG, NVG, Recurrence Networks, Transition Networks) are based on established algorithms from the complex networks literature:
+NetSmith builds on established algorithms and implementations from the complex networks and network analysis literature:
 
 - **Visibility Graphs**: Lacasa et al. (2008)
 - **Recurrence Networks**: Marwan et al. (2009)
@@ -117,10 +105,10 @@ This Python package is released under the MIT License, maintaining compatibility
 
 ## Contact
 
-**Python Implementation:**
+**NetSmith:**
 - GitHub Issues: [Report bugs or request features]
 
-**Original R Package:**
+**Original R ts2net Package (referenced in historical context):**
 - Author: Leonardo N. Ferreira
 - Email: ferreira@leonardonascimento.com
 - Website: https://leonardoferreira.com

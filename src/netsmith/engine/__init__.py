@@ -5,15 +5,15 @@ Provides two backends: Pure Python plus Rust.
 The API does not change.
 """
 
+from .contracts import EdgeList, GraphData
 from .dispatch import (
+    compute_clustering,
+    compute_communities,
+    compute_components,
     compute_degree,
     compute_pagerank,
-    compute_communities,
-    compute_clustering,
-    compute_components,
     compute_shortest_paths,
 )
-from .contracts import EdgeList, GraphData
 
 __all__ = [
     "compute_degree",
@@ -25,4 +25,3 @@ __all__ = [
     "EdgeList",
     "GraphData",
 ]
-

@@ -1,6 +1,6 @@
-# Contributing to ts2net
+# Contributing to NetSmith
 
-Thank you for your interest in contributing to ts2net! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to NetSmith! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -8,8 +8,8 @@ Thank you for your interest in contributing to ts2net! This document provides gu
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/kylejones200/ts2net.git
-   cd ts2net
+   git clone https://github.com/kylejones200/netsmith.git
+   cd netsmith
    ```
 
 2. **Install development dependencies:**
@@ -40,7 +40,7 @@ pytest -m benchmark                   # Benchmark tests
 pytest -m hard_validation             # Hard validation tests
 
 # With coverage
-pytest --cov=ts2net --cov-report=html
+pytest --cov=netsmith --cov-report=html
 ```
 
 ## Development Guidelines
@@ -48,9 +48,9 @@ pytest --cov=ts2net --cov-report=html
 ### Code Style
 
 - Follow PEP 8 style guidelines
-- Use `black` for code formatting: `black ts2net/ tests/`
-- Use `isort` for import sorting: `isort ts2net/ tests/`
-- Use `flake8` for linting: `flake8 ts2net/ tests/`
+- Use `black` for code formatting: `black src/netsmith/ tests/`
+- Use `isort` for import sorting: `isort src/netsmith/ tests/`
+- Use `flake8` for linting: `flake8 src/netsmith/ tests/`
 - Type hints are encouraged but not required
 
 ### Testing
@@ -74,11 +74,11 @@ Follow conventional commit format:
 
 Example:
 ```
-feat: add support for weighted visibility graphs
+feat: add support for weighted graphs
 
-- Add weighted parameter to HVG and NVG
-- Implement distance-based edge weights
-- Add tests for weighted graph construction
+- Add weighted parameter to graph construction
+- Implement weight-based metrics
+- Add tests for weighted graph operations
 ```
 
 ### Pull Request Process
@@ -113,25 +113,26 @@ feat: add support for weighted visibility graphs
 ## Project Structure
 
 ```
-ts2net/
-├── ts2net/              # Main package
-│   ├── api.py          # Graph builder classes (HVG, NVG, etc.)
-│   ├── core/           # Core graph construction algorithms
-│   ├── multivariate/   # Multivariate time series support
-│   ├── viz/            # Visualization functions
-│   └── ...
-├── ts2net_rs/          # Rust extension (performance-critical code)
-├── tests/              # Test suite
-├── examples/          # Example scripts and notebooks
-└── docs/              # Sphinx documentation
+netsmith/
+├── src/netsmith/        # Main package
+│   ├── core/            # Core graph types and algorithms
+│   ├── engine/          # Backend implementations (Python/Rust)
+│   ├── api/             # Public API surface
+│   └── apps/            # Applications (CLI, reports, datasets)
+├── rust/crates/         # Rust extensions (performance-critical code)
+│   ├── netsmith-core/   # Core Rust algorithms
+│   └── netsmith-py/     # Python bindings
+├── tests/               # Test suite
+├── examples/            # Example scripts and notebooks
+└── docs/                # Sphinx documentation
 ```
 
 ## Areas for Contribution
 
 ### High Priority
 
-- **Performance improvements** - Especially for large time series
-- **Additional network methods** - New graph construction algorithms
+- **Performance improvements** - Especially for large graphs
+- **Additional algorithms** - New graph algorithms and metrics
 - **Documentation** - Examples, tutorials, API docs
 - **Bug fixes** - See GitHub issues
 
@@ -152,9 +153,8 @@ ts2net/
 
 - Open an issue for bug reports or feature requests
 - Check existing issues and discussions
-- Review the documentation at https://ts2net.readthedocs.io
+- Review the documentation
 
-Thank you for contributing to ts2net!
-
+Thank you for contributing to NetSmith!
 
 

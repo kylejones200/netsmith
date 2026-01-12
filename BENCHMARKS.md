@@ -1,10 +1,10 @@
 # Large-Scale Benchmark Results
 
-This document summarizes large-scale experiments demonstrating ts2net's capability to handle real-world time series datasets at scale.
+This document summarizes historical large-scale experiments (from the previous project). These benchmarks demonstrate network analysis capabilities at scale.
 
 ## Overview
 
-These experiments validate ts2net's performance and memory efficiency on datasets ranging from single large time series (88k+ points) to massive multi-series analysis (283k+ series, 43M+ data points).
+These historical experiments validated performance and memory efficiency on datasets ranging from single large time series (88k+ points) to massive multi-series analysis (283k+ series, 43M+ data points).
 
 Key Achievements:
 - Zero Out-of-Memory failures across all experiments
@@ -148,7 +148,7 @@ Validation across experiments:
 - ELEC (283k series): Degree distribution peaks at 4.0 for longer series
 
 This validates both:
-1. The correctness of ts2net's HVG implementation
+1. The correctness of HVG implementation
 2. The theoretical property holds at unprecedented scale
 
 ### Linear Scaling Validation
@@ -203,7 +203,7 @@ Note: Some experiments require access to specific datasets. See each experiment'
 
 ## Impact
 
-These benchmarks demonstrate that ts2net can handle:
+These historical benchmarks demonstrate capabilities at scale:
 1. Real-world smart meter data at full temporal resolution
 2. Large-scale comparative studies (thousands of series)
 3. Production deployments with predictable memory usage

@@ -4,9 +4,9 @@ API layer: Public surface.
 Keep it small. Keep it consistent. Make it hard to misuse.
 """
 
-from .load import load_edges
+from .compute import communities, degree, pagerank
 from .graph import Graph, GraphView
-from .compute import degree, pagerank, communities
+from .load import load_edges
 from .validate import validate_edges
 
 __all__ = [
@@ -18,4 +18,3 @@ __all__ = [
     "communities",
     "validate_edges",
 ]
-
