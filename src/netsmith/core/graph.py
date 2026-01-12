@@ -6,11 +6,10 @@ Supports directed, undirected, weighted, multigraph as explicit modes.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
-
 
 
 @dataclass

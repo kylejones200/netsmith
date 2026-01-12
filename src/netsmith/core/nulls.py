@@ -5,7 +5,6 @@ Core null models and permutation tests.
 from typing import Callable, Dict, Literal, Optional
 
 import numpy as np
-from numpy.typing import NDArray
 
 from .graph import Graph
 

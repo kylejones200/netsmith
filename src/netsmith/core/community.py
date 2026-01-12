@@ -77,8 +77,9 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
         import networkx  # noqa: F401
         from networkx.algorithms import community
     except ImportError:
-        raise ImportError(  # noqa: E501
-            "networkx is required for Louvain community detection. Install with: pip install networkx"
+        raise ImportError(
+            "networkx is required for Louvain community detection. "  # noqa: E501
+            "Install with: pip install networkx"
         )
 
     nx_graph = graph.as_networkx()
@@ -112,8 +113,9 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
             for node, comm_id in partition.items():
                 communities[comm_id].add(node)
         except ImportError:
-            raise ImportError(  # noqa: E501
-                "python-louvain is required for Louvain community detection. Install with: pip install python-louvain"
+            raise ImportError(
+                "python-louvain is required for Louvain community detection. "  # noqa: E501
+                "Install with: pip install python-louvain"
             )
 
     # Compute modularity
