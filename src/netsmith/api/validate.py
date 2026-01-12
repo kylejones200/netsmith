@@ -7,6 +7,7 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
+
 def validate_edges(
     u: NDArray, v: NDArray, w: Optional[NDArray] = None, n_nodes: Optional[int] = None
 ) -> None:
