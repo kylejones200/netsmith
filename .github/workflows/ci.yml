@@ -21,13 +21,18 @@ jobs:
       - name: Install
         run: |
           pip install -U pip maturin
-          # Install package in editable mode
-          # pip install -e . will use maturin (specified in pyproject.toml) as the build backend
-          pip install -e .
+          # Create virtualenv (maturin develop requires a venv)
+          python -m venv .venv
+          source .venv/bin/activate
+          # Install package in editable mode using maturin develop
+          maturin develop
           # Install dev dependencies
           pip install pytest pytest-cov black flake8 mypy isort PyYAML
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests
       - name: Lint with black
+        run: |
+          source .venv/bin/activate
+          black --check src/ tests/
         run: black --check src/ tests/
         continue-on-error: true
       
