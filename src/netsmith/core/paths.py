@@ -7,6 +7,7 @@ from typing import Dict, Optional, Union
 import numpy as np
 from numpy.typing import NDArray
 
+from ..exceptions import ValidationError
 from .graph import Graph
 
 
@@ -35,11 +36,22 @@ def shortest_paths(
     result : array or dict
         Distance array or path information
     """
-    from ..engine.contracts import EdgeList
+    # Validate source and target if provided
+    if source is not None:
+        if not isinstance(source, (int, np.integer)):
+            raise ValidationError(f"source must be integer, got {type(source)}")
+        if source < 0 or source >= graph.n_nodes:
+            raise ValidationError(f"source {source} is out of range [0, {graph.n_nodes})")
+
+    if target is not None:
+        if not isinstance(target, (int, np.integer)):
+            raise ValidationError(f"target must be integer, got {type(target)}")
+        if target < 0 or target >= graph.n_nodes:
+            raise ValidationError(f"target {target} is out of range [0, {graph.n_nodes})")
+
     from ..engine.dispatch import compute_shortest_paths
 
-    src, dst, w = graph.edges_coo()
-    edges = EdgeList(u=src, v=dst, w=w, directed=graph.directed, n_nodes=graph.n_nodes)
+    edges = graph.to_edge_list()
 
     return compute_shortest_paths(
         edges, source=source, target=target, weight=weight, backend="auto"
@@ -62,16 +74,24 @@ def reachability(graph: Graph, source: int) -> NDArray:
     reachable : array
         Boolean array indicating reachable nodes
     """
-    from ..engine.contracts import EdgeList
+    # Validate source node
+    if not isinstance(source, (int, np.integer)):
+        raise ValidationError(f"source must be integer, got {type(source)}")
+    if source < 0 or source >= graph.n_nodes:
+        raise ValidationError(f"source {source} is out of range [0, {graph.n_nodes})")
+
     from ..engine.dispatch import compute_shortest_paths
 
-    src, dst, w = graph.edges_coo()
-    edges = EdgeList(u=src, v=dst, w=w, directed=graph.directed, n_nodes=graph.n_nodes)
+    edges = graph.to_edge_list()
 
     dist = compute_shortest_paths(edges, source=source, backend="auto")
     if isinstance(dist, dict):
-        # Fallback if dict returned
-        return np.ones(graph.n_nodes, dtype=bool)
+        # This should not happen when source is specified
+        # If it does, it indicates a backend implementation issue
+        raise ValueError(
+            f"Unexpected dict return from compute_shortest_paths with source={source}. "
+            f"This indicates a backend implementation issue."
+        )
     # Convert to boolean: reachable if distance is not max
     # Use the actual dtype's max value, not hardcoded int64.max
     max_val = np.iinfo(dist.dtype).max
@@ -94,5 +114,7 @@ def walk_metrics(graph: Graph, length: int = 1) -> Dict:
     metrics : dict
         Dictionary with walk metrics
     """
-    # Placeholder - full implementation in engine layer
-    return {}
+    raise NotImplementedError(
+        "walk_metrics is not yet implemented. "
+        "This feature is planned for a future release."
+    )

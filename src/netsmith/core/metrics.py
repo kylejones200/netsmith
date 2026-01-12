@@ -7,6 +7,7 @@ from typing import Optional, Union
 import numpy as np
 from numpy.typing import NDArray
 
+from ..exceptions import ValidationError
 from .graph import Graph
 
 
@@ -29,6 +30,12 @@ def degree(graph: Graph, node: Optional[int] = None, mode: str = "out") -> Union
         Degree sequence or single degree value
     """
     if node is not None:
+        # Validate node index
+        if not isinstance(node, (int, np.integer)):
+            raise ValidationError(f"node must be integer, got {type(node)}")
+        if node < 0 or node >= graph.n_nodes:
+            raise ValidationError(f"node {node} is out of range [0, {graph.n_nodes})")
+
         if graph.directed:
             if mode == "in":
                 return int(graph.in_degree_sequence()[node])

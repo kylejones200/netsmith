@@ -11,6 +11,8 @@ from typing import List, Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
+from ..exceptions import ValidationError
+
 
 @dataclass
 class Graph:
@@ -48,6 +50,45 @@ class Graph:
     _degrees: Optional[NDArray] = None
     _in_degrees: Optional[NDArray] = None
     _out_degrees: Optional[NDArray] = None
+
+    def __post_init__(self):
+        """Validate graph inputs."""
+        # Validate n_nodes
+        if self.n_nodes < 0:
+            raise ValidationError(f"n_nodes must be >= 0, got {self.n_nodes}")
+
+        # Validate edges format and indices
+        for i, edge in enumerate(self.edges):
+            if not isinstance(edge, (tuple, list)):
+                raise ValidationError(f"Edge {i} must be tuple or list, got {type(edge)}")
+            if len(edge) < 2:
+                raise ValidationError(f"Edge {i} must have at least 2 elements (u, v), got {len(edge)}")
+            if len(edge) > 3:
+                raise ValidationError(f"Edge {i} must have at most 3 elements (u, v, weight), got {len(edge)}")
+
+            u, v = edge[0], edge[1]
+            if not isinstance(u, (int, np.integer)):
+                raise ValidationError(f"Edge {i} source node must be integer, got {type(u)}")
+            if not isinstance(v, (int, np.integer)):
+                raise ValidationError(f"Edge {i} destination node must be integer, got {type(v)}")
+
+            if u < 0 or u >= self.n_nodes:
+                raise ValidationError(
+                    f"Edge {i} source node {u} is out of range [0, {self.n_nodes})"
+                )
+            if v < 0 or v >= self.n_nodes:
+                raise ValidationError(
+                    f"Edge {i} destination node {v} is out of range [0, {self.n_nodes})"
+                )
+
+            # Validate weight if provided
+            if self.weighted and len(edge) < 3:
+                raise ValidationError(
+                    f"Graph is marked as weighted but edge {i} has no weight: {edge}"
+                )
+            if not self.weighted and len(edge) == 3:
+                # Auto-detect weighted if weights provided
+                pass
 
     @property
     def n_edges(self) -> int:
@@ -231,6 +272,20 @@ class Graph:
                 np.array([], dtype=np.int64),
                 None if not self.weighted else np.array([]),
             )
+
+    def to_edge_list(self):
+        """
+        Convert graph to EdgeList data contract.
+
+        Returns
+        -------
+        edges : EdgeList
+            Edge list representation
+        """
+        from ..engine.contracts import EdgeList
+
+        src, dst, w = self.edges_coo()
+        return EdgeList(u=src, v=dst, w=w, directed=self.directed, n_nodes=self.n_nodes)
 
     def as_networkx(self, force: bool = False):
         """Convert to NetworkX graph (optional dependency)."""

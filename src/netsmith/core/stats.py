@@ -24,8 +24,10 @@ def distributions(data: NDArray, method: str = "empirical") -> dict:
     result : dict
         Dictionary with distribution parameters
     """
-    # Placeholder - full implementation in engine layer
-    return {}
+    raise NotImplementedError(
+        "distributions is not yet implemented. "
+        "This feature is planned for a future release."
+    )
 
 
 def confidence_intervals(
@@ -48,7 +50,7 @@ def confidence_intervals(
     ci : tuple
         (lower, upper) confidence interval bounds
     """
-    # Placeholder - full implementation in engine layer
+    # Note: This is a basic implementation, not a placeholder
     mean = np.mean(data)
     std = np.std(data)
     try:

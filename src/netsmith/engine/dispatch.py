@@ -2,12 +2,16 @@
 Backend dispatch: Selects Python or Rust backend at runtime.
 """
 
+import logging
 from typing import Dict, Literal, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
 
+from ..exceptions import BackendError
 from .contracts import EdgeList
+
+logger = logging.getLogger(__name__)
 
 Backend = Literal["auto", "python", "rust"]
 
@@ -57,9 +61,14 @@ def compute_degree(edges: EdgeList, backend: Backend = "auto") -> NDArray[np.int
             from .rust import degree_rust
 
             return degree_rust(edges)
-        except (ImportError, RuntimeError):
-            # Fall back to Python
+        except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for degree computation, using Python")
             pass
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in degree computation: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
 
     # Python backend
     from .python import degree_python
@@ -133,8 +142,14 @@ def compute_clustering(edges: EdgeList, backend: Backend = "auto") -> NDArray[np
             from .rust import clustering_rust
 
             return clustering_rust(edges)
-        except (ImportError, RuntimeError):
+        except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for clustering computation, using Python")
             pass
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in clustering computation: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
 
     from .python import clustering_python
 
@@ -211,8 +226,14 @@ def compute_shortest_paths(
             from .rust import shortest_paths_rust
 
             return shortest_paths_rust(edges, source, edges.directed)
-        except (ImportError, RuntimeError):
+        except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for shortest paths computation, using Python")
             pass
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in shortest paths computation: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
 
     from .python import shortest_paths_python
 
