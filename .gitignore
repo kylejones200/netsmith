@@ -151,6 +151,9 @@ $RECYCLE.BIN/
 *.pkl
 *.pickle
 
+# Experimental results (large files)
+experiments/
+
 # Generated images (should be in examples/images/)
 /*.png
 /*.jpg
