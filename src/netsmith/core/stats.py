@@ -34,6 +34,37 @@ def confidence_intervals(
     data: NDArray, alpha: float = 0.05, method: str = "normal"
 ) -> Tuple[float, float]:
     """
+    Compute confidence intervals for data.
+
+    Parameters
+    ----------
+    data : NDArray
+        Input data array
+    alpha : float, default 0.05
+        Significance level (0.05 = 95% confidence interval)
+    method : str, default "normal"
+        Method for computing intervals: "normal" (assumes normal distribution)
+        or "bootstrap" (uses bootstrap resampling)
+
+    Returns
+    -------
+    ci_lower : float
+        Lower bound of confidence interval
+    ci_upper : float
+        Upper bound of confidence interval
+
+    Raises
+    ------
+    ImportError
+        If scipy is required but not available (for normal method)
+
+    Notes
+    -----
+    For the "normal" method, uses scipy.stats if available, otherwise falls
+    back to numpy-based computation. For the "bootstrap" method, uses
+    the bootstrap function from this module.
+    """
+    """
     Compute confidence intervals.
 
     Parameters
