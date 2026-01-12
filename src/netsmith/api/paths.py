@@ -25,25 +25,37 @@ def shortest_paths(
     backend: Backend = "auto",
 ) -> Union[NDArray[np.int64], Dict]:
     """
-    Compute shortest paths.
+    Compute shortest paths in a graph.
 
     Parameters
     ----------
     graph : Graph
         Input graph
     source : int, optional
-        Source node (if None, compute all pairs)
+        Source node index. If None, computes all-pairs shortest paths.
     target : int, optional
-        Target node
+        Target node index. If specified with source, returns shortest path
+        between source and target.
     weight : str, optional
-        Edge weight attribute (if graph is weighted)
-    backend : str, default "auto"
-        Backend: "auto", "python", or "rust"
+        Edge weight attribute name (currently not fully supported)
+    backend : Backend, default "auto"
+        Computation backend: "auto" (prefer Rust), "python", or "rust"
 
     Returns
     -------
-    result : array or dict
-        Distance array or path information
+    result : NDArray[np.int64] or Dict
+        If source is specified: distance array (n_nodes,) with distances from source.
+        If source is None: dictionary with path information.
+
+    Raises
+    ------
+    ValidationError
+        If source or target are out of range [0, graph.n_nodes)
+
+    Notes
+    -----
+    Unreachable nodes have distance equal to the maximum value for the array dtype.
+    For all-pairs computation (source=None), the return format may vary by backend.
     """
     # Validate source and target if provided
     if source is not None:
@@ -65,23 +77,32 @@ def shortest_paths(
     )
 
 
-def reachability(graph: Graph, source: int, backend: Backend = "auto") -> NDArray:
+def reachability(graph: Graph, source: int, backend: Backend = "auto") -> NDArray[np.bool_]:
     """
-    Compute reachable nodes from source.
+    Compute reachable nodes from a source node.
 
     Parameters
     ----------
     graph : Graph
         Input graph
     source : int
-        Source node
-    backend : str, default "auto"
-        Backend: "auto", "python", or "rust"
+        Source node index
+    backend : Backend, default "auto"
+        Computation backend: "auto" (prefer Rust), "python", or "rust"
 
     Returns
     -------
-    reachable : array
-        Boolean array indicating reachable nodes
+    reachable : NDArray[np.bool_]
+        Boolean array (n_nodes,) where reachable[i] is True if node i is
+        reachable from source, False otherwise. The source node itself is
+        always reachable.
+
+    Raises
+    ------
+    ValidationError
+        If source is out of range [0, graph.n_nodes)
+    BackendError
+        If backend returns unexpected format (implementation issue)
     """
     # Validate source node
     if not isinstance(source, (int, np.integer)):
