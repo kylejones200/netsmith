@@ -21,7 +21,7 @@ from netsmith.core.metrics import (  # noqa: E402
     degree,
     k_core,
     strength,
-)  # noqa: E402
+)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

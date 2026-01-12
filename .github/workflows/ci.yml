@@ -21,11 +21,10 @@ jobs:
       - name: Install
         run: |
           pip install -U pip maturin
-          # Install CPU-only PyTorch first (much smaller, ~200MB vs ~3GB with CUDA)
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          # Install package without dev deps (to avoid reinstalling torch)
-          pip install -e .
-          # Install dev dependencies except torch (already installed)
+          # Install package in editable mode using maturin develop
+          # Debug build is faster for CI (release builds are for production)
+          maturin develop
+          # Install dev dependencies
           pip install pytest pytest-cov black flake8 mypy isort PyYAML
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests
       - name: Lint with black
