@@ -11,14 +11,6 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
-# Import for type hints only
-try:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        import networkx as nx
-except ImportError:
-    pass
 
 
 @dataclass
