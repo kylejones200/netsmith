@@ -21,9 +21,9 @@ jobs:
       - name: Install
         run: |
           pip install -U pip maturin
-          # Install package in editable mode using maturin develop
-          # Debug build is faster for CI (release builds are for production)
-          maturin develop
+          # Install package in editable mode
+          # pip install -e . will use maturin (specified in pyproject.toml) as the build backend
+          pip install -e .
           # Install dev dependencies
           pip install pytest pytest-cov black flake8 mypy isort PyYAML
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests

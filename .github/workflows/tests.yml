@@ -34,12 +34,9 @@ jobs:
           
       - name: Build and install package
         run: |
-          # Install the package in editable mode for testing
-          # Use maturin develop for reliable editable installs with Rust extensions
-          # Debug build is faster for CI (release builds are for production)
-          maturin develop
-          # Install dev dependencies
-          pip install pytest pytest-cov black flake8 mypy isort PyYAML
+          # Install the package in editable mode
+          # pip install -e . will use maturin (specified in pyproject.toml) as the build backend
+          pip install -e .[dev]
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests
 
       - name: Run tests
