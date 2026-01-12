@@ -185,17 +185,17 @@ def clustering(graph: Graph, node: Optional[int] = None) -> Union[NDArray, float
     -------
     clustering : array or float
         Clustering coefficients or single value
+
+    Note
+    ----
+    This function is a wrapper around api.metrics.clustering to maintain
+    backward compatibility. The implementation has been moved to the API layer
+    to fix architecture violations (Core layer should not import from Engine).
     """
-    # Use engine layer for actual computation
-    from ..engine.dispatch import compute_clustering
+    # Delegate to API layer (which handles Engine dispatch)
+    from ..api.metrics import clustering as api_clustering
 
-    edges = graph.to_edge_list()
-
-    clustering_values = compute_clustering(edges, backend="auto")
-
-    if node is not None:
-        return float(clustering_values[node])
-    return clustering_values
+    return api_clustering(graph, node=node, backend="auto")
 
 
 def k_core(graph: Graph, k: int) -> NDArray:
