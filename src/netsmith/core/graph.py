@@ -153,7 +153,7 @@ class Graph:
             self._out_degrees = out_degrees
         return self._out_degrees
 
-    def adjacency_matrix(self, format: str = "dense") -> Union[np.ndarray, "sp.spmatrix"]:
+    def adjacency_matrix(self, format: str = "dense") -> Union[np.ndarray, "scipy.sparse.spmatrix"]:
         """
         Adjacency matrix (lazy, dense by default for small graphs).
 
