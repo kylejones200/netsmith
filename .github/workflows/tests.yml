@@ -48,12 +48,10 @@ jobs:
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests
 
       - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src:${{ env.PYTHONPATH }}
         run: |
           source .venv/bin/activate
-          # Debug: check if package is installed
-          python -c "import sys; print('Python path:', sys.path)"
-          pip list | grep -i netsmith || echo "netsmith not in pip list"
-          python -c "import netsmith; print('netsmith imported successfully')" || echo "netsmith import failed"
           pytest tests/ --cov=netsmith --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov

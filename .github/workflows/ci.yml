@@ -60,6 +60,7 @@ jobs:
       - name: Run tests
         env:
           PYTHONHASHSEED: "0"
+          PYTHONPATH: ${{ github.workspace }}/src:${{ env.PYTHONPATH }}
         run: |
           source .venv/bin/activate
           pytest -q --cov=netsmith --cov-report=term-missing
