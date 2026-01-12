@@ -59,6 +59,8 @@ strip = true
 sdist-include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 # Setuptools configuration for src/ layout
+[tool.setuptools]
+package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
