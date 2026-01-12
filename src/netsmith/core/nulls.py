@@ -16,23 +16,44 @@ def null_models(
     seed: Optional[int] = None,
 ) -> Dict:
     """
-    Generate null model graphs.
+    Generate null model graphs for statistical comparison.
 
     Parameters
     ----------
     graph : Graph
-        Input graph
-    method : str, default "configuration"
-        Null model method: "configuration", "erdos_renyi", "degree_preserving"
+        Input graph to generate null models from
+    method : {"configuration", "erdos_renyi", "degree_preserving"}, default "configuration"
+        Null model method:
+        - "configuration": Preserve degree sequence, randomize connections
+        - "erdos_renyi": Random graph with same number of nodes and edges
+        - "degree_preserving": Preserve degrees, randomize via edge swaps
     n_samples : int, default 100
-        Number of null model samples
+        Number of null model graphs to generate
     seed : int, optional
-        Random seed
+        Random seed for reproducibility
 
     Returns
     -------
     result : dict
-        Dictionary with null model graphs
+        Dictionary containing:
+        - "graphs": List of Graph objects (null model samples)
+        - "method": String name of the method used
+        - "n_samples": Number of graphs actually generated (may be < n_samples
+          if some samples failed for configuration model)
+
+    Raises
+    ------
+    ImportError
+        If NetworkX is not installed (required for null model generation)
+    ValueError
+        If method is not recognized
+
+    Notes
+    -----
+    Null models are used for statistical significance testing. They preserve
+    certain properties (e.g., degree sequence) while randomizing others.
+    The configuration model may skip some samples if degree sequences are
+    invalid (this is expected behavior).
     """
     try:
         import networkx as nx

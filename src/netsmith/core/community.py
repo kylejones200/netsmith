@@ -12,21 +12,35 @@ from .graph import Graph
 
 def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None) -> float:
     """
-    Compute modularity.
+    Compute modularity score for community assignments.
 
     Parameters
     ----------
     graph : Graph
         Input graph
-    communities : array (n_nodes,)
-        Community assignment for each node
+    communities : NDArray
+        Array (n_nodes,) with community ID for each node.
+        Nodes with the same ID are in the same community.
     weight : str, optional
-        Edge weight attribute (ignored, uses graph weights if available)
+        Edge weight attribute name (currently ignored; uses graph weights if available)
 
     Returns
     -------
     modularity : float
-        Modularity score
+        Modularity score in range [-0.5, 1.0]. Higher values indicate
+        stronger community structure. Values >0.3 typically indicate
+        meaningful communities.
+
+    Raises
+    ------
+    ImportError
+        If NetworkX is not installed (required for modularity computation)
+
+    Notes
+    -----
+    Modularity measures the quality of community assignments by comparing
+    the fraction of edges within communities to the expected fraction in
+    a random graph with the same degree sequence.
     """
     # Convert to NetworkX for modularity computation
     try:
@@ -139,19 +153,32 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
 
 def label_propagation_hooks(graph: Graph, seed: Optional[int] = None) -> Dict:
     """
-    Label propagation community detection hooks.
+    Detect communities using asynchronous label propagation.
 
     Parameters
     ----------
     graph : Graph
-        Input graph
+        Input graph (converted to undirected for community detection)
     seed : int, optional
-        Random seed
+        Random seed for reproducibility (algorithm has stochastic elements)
 
     Returns
     -------
     result : dict
-        Dictionary with community assignments
+        Dictionary containing:
+        - "communities": NDArray[np.int64] (n_nodes,) with community IDs
+        - "n_communities": int number of communities found
+
+    Raises
+    ------
+    ImportError
+        If NetworkX is not installed (required for label propagation)
+
+    Notes
+    -----
+    Label propagation is a fast, local algorithm. Nodes iteratively adopt
+    the label most common among their neighbors. The algorithm converges
+    when labels stabilize. Works well for graphs with clear community structure.
     """
     # Convert to NetworkX
     try:

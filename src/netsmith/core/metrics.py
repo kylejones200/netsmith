@@ -105,21 +105,34 @@ def strength(graph: Graph, node: Optional[int] = None, mode: str = "out") -> Uni
 
 def centrality(graph: Graph, method: str = "degree", **kwargs) -> NDArray:
     """
-    Compute centrality measures.
+    Compute centrality measures for nodes in a graph.
 
     Parameters
     ----------
     graph : Graph
         Input graph
     method : str, default "degree"
-        Centrality method: "degree", "betweenness", "closeness", "eigenvector", "pagerank"
+        Centrality method. Currently supported: "degree".
+        Planned: "betweenness", "closeness", "eigenvector", "pagerank"
     **kwargs
-        Additional arguments for specific methods
+        Additional arguments for specific methods (currently unused)
 
     Returns
     -------
-    centrality : array (n_nodes,)
-        Centrality scores
+    centrality : NDArray
+        Array (n_nodes,) with centrality scores for each node.
+        For "degree" method, returns degree centrality (normalized degrees).
+
+    Raises
+    ------
+    NotImplementedError
+        If method is not yet implemented
+
+    Notes
+    -----
+    Centrality measures identify important nodes in a network.
+    Degree centrality is the simplest measure (normalized degree).
+    Other methods will be added in future releases.
     """
     # For now, implement degree centrality
     # Other methods will be added in engine layer
@@ -131,20 +144,30 @@ def centrality(graph: Graph, method: str = "degree", **kwargs) -> NDArray:
 
 def assortativity(graph: Graph, attribute: Optional[NDArray] = None) -> float:
     """
-    Compute assortativity coefficient.
+    Compute assortativity coefficient (homophily measure).
 
     Parameters
     ----------
     graph : Graph
         Input graph
-    attribute : array, optional
-        Node attribute to compute assortativity on.
-        If None, uses degree.
+    attribute : NDArray, optional
+        Node attribute array (n_nodes,) to compute assortativity on.
+        If None, uses degree as the attribute (degree assortativity).
 
     Returns
     -------
     assortativity : float
-        Assortativity coefficient
+        Assortativity coefficient in range [-1, 1].
+        - Positive values: similar nodes tend to connect (assortative)
+        - Negative values: dissimilar nodes tend to connect (disassortative)
+        - Zero: no preference (random mixing)
+
+    Notes
+    -----
+    Assortativity measures the tendency of nodes to connect to similar nodes.
+    Degree assortativity (default) measures whether high-degree nodes connect
+    to other high-degree nodes. The coefficient is the Pearson correlation
+    of attribute values at edge endpoints.
     """
     if attribute is None:
         attribute = degree(graph)
