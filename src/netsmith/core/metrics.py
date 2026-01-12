@@ -255,14 +255,14 @@ def components(graph: Graph, return_labels: bool = True) -> Union[int, NDArray]:
     -------
     labels : array (n_nodes,) or int
         Component labels or number of components
+
+    Note
+    ----
+    This function is a wrapper around api.metrics.components to maintain
+    backward compatibility. The implementation has been moved to the API layer
+    to fix architecture violations (Core layer should not import from Engine).
     """
-    # Use engine layer for actual computation
-    from ..engine.dispatch import compute_components
+    # Delegate to API layer (which handles Engine dispatch)
+    from ..api.metrics import components as api_components
 
-    edges = graph.to_edge_list()
-
-    n_components, labels = compute_components(edges, backend="auto")
-
-    if return_labels:
-        return labels
-    return n_components
+    return api_components(graph, return_labels=return_labels, backend="auto")
