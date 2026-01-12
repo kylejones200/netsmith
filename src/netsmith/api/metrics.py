@@ -10,7 +10,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..core.graph import Graph
-from ..engine.contracts import EdgeList
 from ..engine.dispatch import compute_clustering, compute_components
 from ..exceptions import ValidationError
 

@@ -8,9 +8,6 @@ This module is kept for backward compatibility and re-exports from API.
 
 from typing import Dict
 
-import numpy as np
-from numpy.typing import NDArray
-
 # Re-export from API layer to maintain backward compatibility
 from ..api.paths import reachability, shortest_paths  # noqa: F401
 from .graph import Graph
