@@ -37,10 +37,7 @@ jobs:
           # Install the package in editable mode for testing
           # This ensures Python finds the code and the Rust extension
           pip install -e .[dev]
-          # Install other optional dependencies for testing
-          pip install numba tslearn pynndescent pyreadr || echo "Some optional deps failed, continuing..."
-          # Verify test dependencies are installed
-          python -c "import statsmodels; import pyarrow; import polars; import torch; print('✓ All test dependencies installed')"
+          # Note: scipy, networkx, pandas, polars are optional and not required for core tests
 
       - name: Run tests
         run: |

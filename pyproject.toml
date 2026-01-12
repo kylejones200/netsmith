@@ -26,15 +26,15 @@ classifiers = [
 # Main dependencies
 dependencies = [
     "numpy>=1.23,<3.0.0",
-    "scipy>=1.9,<2.0.0",
 ]
 
 # Optional dependencies
 [project.optional-dependencies]
 rust = []  # Rust backend (installed automatically if available)
+scipy = ["scipy>=1.9,<2.0.0"]  # For sparse matrices and advanced stats
 pandas = ["pandas>=1.5,<3.0.0"]
 polars = ["polars>=0.20,<1.0.0"]
-networkx = ["networkx>=3.0,<4.0.0"]
+networkx = ["networkx>=3.0,<4.0.0"]  # For community detection, null models, k-core
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",

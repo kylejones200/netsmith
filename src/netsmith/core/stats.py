@@ -56,8 +56,10 @@ def confidence_intervals(
 
         z = stats.norm.ppf(1 - alpha / 2)
     except ImportError:
-        # Fallback: approximate with numpy
-        z = 1.96  # For alpha=0.05, two-tailed
+        # Fallback: approximate with numpy using standard normal approximation
+        # For alpha=0.05: z ≈ 1.96, for alpha=0.01: z ≈ 2.576, etc.
+        # Good approximation for most use cases
+        z = 1.96 if alpha == 0.05 else 2.576 if alpha == 0.01 else 1.645 if alpha == 0.10 else 1.96
     return (mean - z * std, mean + z * std)
 
 

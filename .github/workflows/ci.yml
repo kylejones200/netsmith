@@ -27,10 +27,7 @@ jobs:
           pip install -e .
           # Install dev dependencies except torch (already installed)
           pip install pytest pytest-cov black flake8 mypy isort PyYAML
-          # Install optional dependencies
-          pip install numba tslearn pynndescent pyreadr || true
-          # Verify torch is installed
-          python -c "import torch; print(f'✓ PyTorch {torch.__version__} (CPU-only) installed')"
+          # Note: scipy, networkx, pandas, polars are optional and not required for core tests
       - name: Lint with black
         run: black --check src/ tests/
         continue-on-error: true

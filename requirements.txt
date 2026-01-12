@@ -7,8 +7,11 @@
 #   3. Or manually pin based on pyproject.toml ranges
 
 # Core dependencies (from pyproject.toml)
+# Note: scipy is now optional! Only numpy is required.
 numpy>=1.23,<3.0.0
-scipy>=1.9,<2.0.0
+
+# Optional dependencies (install separately or via pip install netsmith[scipy])
+# scipy>=1.9,<2.0.0  # Optional: for sparse matrices
 
 # Note: This file uses version ranges from pyproject.toml
 # For production deployments, consider using pip-tools to generate

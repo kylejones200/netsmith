@@ -4,16 +4,18 @@ Null Models Example
 This example demonstrates null model generation and statistical testing in NetSmith.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import logging
+
+import numpy as np
+
 from netsmith.core import Graph
-from netsmith.core.nulls import null_models, permutation_tests
 from netsmith.core.metrics import clustering
+from netsmith.core.nulls import null_models, permutation_tests
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

@@ -53,7 +53,7 @@ class Graph:
     n_nodes: int
     directed: bool = False
     weighted: bool = False
-    _adjacency: Optional = None  # scipy sparse matrix, not dense
+    _adjacency: Optional = None  # numpy array (dense) or scipy sparse matrix
     _degrees: Optional[NDArray] = None
     _in_degrees: Optional[NDArray] = None
     _out_degrees: Optional[NDArray] = None
@@ -114,59 +114,88 @@ class Graph:
             self._out_degrees = out_degrees
         return self._out_degrees
 
-    def adjacency_matrix(self, format: str = "sparse"):
+    def adjacency_matrix(self, format: str = "dense"):
         """
-        Adjacency matrix (lazy, sparse by default).
+        Adjacency matrix (lazy, dense by default for small graphs).
 
         Parameters
         ----------
-        format : str, default "sparse"
-            Output format: "sparse" (CSR), "dense", or "coo"
+        format : str, default "dense"
+            Output format: "dense" (numpy array), "sparse" (CSR), or "coo"
+            Note: "sparse" and "coo" require scipy to be installed.
 
         Returns
         -------
-        A : scipy.sparse.csr_matrix, scipy.sparse.coo_matrix, or array
-            Adjacency matrix. Sparse by default to avoid memory blowup.
+        A : numpy.ndarray, scipy.sparse.csr_matrix, or scipy.sparse.coo_matrix
+            Adjacency matrix. Returns dense array by default (no scipy required).
+            For sparse formats, scipy must be installed: pip install netsmith[scipy]
         """
-        from scipy import sparse as sp
-
-        if format == "dense" and self.n_nodes > 50_000:
-            raise ValueError(
-                f"Refusing to build dense adjacency matrix for n={self.n_nodes} nodes. "
-                f"This would require ~{self.n_nodes**2 * 8 / 1e9:.1f} GB of memory. "
-                f"Use format='sparse' or format='coo' instead."
-            )
-
-        if self._adjacency is None:
-            if len(self.edges) == 0:
-                self._adjacency = sp.coo_matrix((self.n_nodes, self.n_nodes))
-            else:
+        # Always allow dense format (pure numpy)
+        if format == "dense":
+            if self._adjacency is None or not isinstance(self._adjacency, np.ndarray):
+                adj = np.zeros(
+                    (self.n_nodes, self.n_nodes), dtype=np.float64 if self.weighted else np.int64
+                )
                 if self.weighted:
-                    rows = [e[0] for e in self.edges]
-                    cols = [e[1] for e in self.edges]
-                    data = [e[2] for e in self.edges]
+                    for edge in self.edges:
+                        adj[edge[0], edge[1]] = edge[2]
+                        if not self.directed:
+                            adj[edge[1], edge[0]] = edge[2]
                 else:
-                    rows = [e[0] for e in self.edges]
-                    cols = [e[1] for e in self.edges]
-                    data = [1.0] * len(self.edges)
+                    for edge in self.edges:
+                        adj[edge[0], edge[1]] = 1
+                        if not self.directed:
+                            adj[edge[1], edge[0]] = 1
+                self._adjacency = adj
+            return self._adjacency
 
-                if not self.directed:
-                    reverse_rows = cols.copy()
-                    reverse_cols = rows.copy()
-                    rows = rows + reverse_rows
-                    cols = cols + reverse_cols
-                    data = data + data
-
-                self._adjacency = sp.coo_matrix(
-                    (data, (rows, cols)), shape=(self.n_nodes, self.n_nodes)
+        # Sparse formats require scipy
+        if format in ("sparse", "coo"):
+            try:
+                from scipy import sparse as sp
+            except ImportError:
+                raise ImportError(
+                    "scipy is required for sparse matrix formats. "
+                    "Install with: pip install netsmith[scipy] or pip install scipy"
                 )
 
-        if format == "dense":
-            return self._adjacency.toarray()
-        elif format == "coo":
-            return self._adjacency.tocoo()
-        else:
-            return self._adjacency.tocsr()
+            if self.n_nodes > 50_000 and format != "sparse":
+                raise ValueError(
+                    f"Refusing to build dense adjacency matrix for n={self.n_nodes} nodes. "
+                    f"This would require ~{self.n_nodes**2 * 8 / 1e9:.1f} GB of memory. "
+                    f"Use format='sparse' or format='coo' instead."
+                )
+
+            if self._adjacency is None or not isinstance(self._adjacency, sp.spmatrix):
+                if len(self.edges) == 0:
+                    self._adjacency = sp.coo_matrix((self.n_nodes, self.n_nodes))
+                else:
+                    if self.weighted:
+                        rows = [e[0] for e in self.edges]
+                        cols = [e[1] for e in self.edges]
+                        data = [e[2] for e in self.edges]
+                    else:
+                        rows = [e[0] for e in self.edges]
+                        cols = [e[1] for e in self.edges]
+                        data = [1.0] * len(self.edges)
+
+                    if not self.directed:
+                        reverse_rows = cols.copy()
+                        reverse_cols = rows.copy()
+                        rows = rows + reverse_rows
+                        cols = cols + reverse_cols
+                        data = data + data
+
+                    self._adjacency = sp.coo_matrix(
+                        (data, (rows, cols)), shape=(self.n_nodes, self.n_nodes)
+                    )
+
+            if format == "coo":
+                return self._adjacency.tocoo()
+            else:
+                return self._adjacency.tocsr()
+
+        raise ValueError(f"Unknown format: {format}. Use 'dense', 'sparse', or 'coo'")
 
     def edges_coo(self) -> Tuple[NDArray, NDArray, Optional[NDArray]]:
         """

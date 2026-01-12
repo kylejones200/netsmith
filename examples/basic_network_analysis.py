@@ -5,16 +5,18 @@ This example demonstrates basic usage of NetSmith with edge lists.
 Shows how to load graphs, compute metrics, and perform network analysis.
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path for development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import logging
+
+import numpy as np
+
 from netsmith.core import Graph
-from netsmith.core.metrics import degree, clustering, components
+from netsmith.core.metrics import clustering, components, degree
 from netsmith.core.paths import shortest_paths
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")

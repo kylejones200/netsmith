@@ -4,15 +4,17 @@ Community Detection Example
 This example demonstrates community detection algorithms in NetSmith.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
 import logging
+
+import numpy as np
+
 from netsmith.core import Graph
-from netsmith.core.community import modularity, louvain_hooks, label_propagation_hooks
+from netsmith.core.community import label_propagation_hooks, louvain_hooks, modularity
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

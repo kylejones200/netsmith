@@ -85,19 +85,21 @@ class TestGraph:
         assert np.allclose(w, np.array([0.5, 1.5]))
 
     def test_adjacency_matrix_sparse(self):
-        """Test creating sparse adjacency matrix."""
+        """Test creating sparse adjacency matrix (requires scipy)."""
         edges = [(0, 1), (1, 2)]
         graph = Graph(edges=edges, n_nodes=3)
 
-        adj = graph.adjacency_matrix(format="sparse")
-
-        # Should return scipy sparse matrix
-        assert hasattr(adj, "toarray")
-        dense = adj.toarray()
-        assert dense.shape == (3, 3)
-        assert dense[0, 1] == 1
-        assert dense[1, 2] == 1
-        assert dense[1, 0] == 1  # Undirected
+        try:
+            adj = graph.adjacency_matrix(format="sparse")
+            # Should return scipy sparse matrix
+            assert hasattr(adj, "toarray")
+            dense = adj.toarray()
+            assert dense.shape == (3, 3)
+            assert dense[0, 1] == 1
+            assert dense[1, 2] == 1
+            assert dense[1, 0] == 1  # Undirected
+        except ImportError:
+            pytest.skip("scipy not available, skipping sparse matrix test")
 
     def test_adjacency_matrix_dense(self):
         """Test creating dense adjacency matrix."""

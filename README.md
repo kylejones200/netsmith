@@ -99,16 +99,28 @@ netsmith compute communities --input edges.parquet --out communities.parquet
 
 ## Installation
 
+**Minimal installation (numpy only - ~10MB):**
 ```bash
-# Basic installation
 pip install netsmith
+```
 
-# With optional dependencies
-pip install netsmith[pandas,polars,networkx]
+**With optional dependencies:**
+```bash
+pip install netsmith[scipy]      # For sparse matrices (adjacency_matrix format='sparse'/'coo')
+pip install netsmith[networkx]   # For community detection, null models, k-core decomposition
+pip install netsmith[pandas]     # For pandas data loading
+pip install netsmith[polars]     # For polars data loading
+
+# Or install all optional dependencies:
+pip install netsmith[scipy,networkx,pandas,polars]
 
 # Development
 pip install netsmith[dev]
 ```
+
+**Note:** Core functionality (degree, paths, components, clustering) works with just `numpy`. 
+`scipy` is only needed for sparse matrix formats, and `networkx` is only needed for advanced 
+community detection and null models.
 
 ## Rust Backend
 

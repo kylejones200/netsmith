@@ -17,7 +17,8 @@ fi
 echo "Installing dependencies..."
 pip install -U pip maturin pytest pytest-cov PyYAML || true
 pip install -e . || true
-pip install numba tslearn pynndescent pyreadr || echo "Some optional deps failed, continuing..."
+# Optional dependencies not needed for core netsmith functionality
+# pip install scipy networkx pandas polars  # Install if needed for specific features
 
 # Run tests (same as CI)
 echo ""
