@@ -36,19 +36,26 @@ jobs:
         continue-on-error: true
       
       - name: Lint with isort
-        run: isort --check-only src/ tests/
+        run: |
+          source .venv/bin/activate
+          isort --check-only src/ tests/
         continue-on-error: true
       
       - name: Lint with flake8
-        run: flake8 src/ tests/
+        run: |
+          source .venv/bin/activate
+          flake8 src/ tests/
         continue-on-error: true
       
       - name: Type check with mypy
-        run: mypy src/netsmith
+        run: |
+          source .venv/bin/activate
+          mypy src/netsmith
         continue-on-error: true
       
       - name: Run tests
         env:
           PYTHONHASHSEED: "0"
         run: |
+          source .venv/bin/activate
           pytest -q --cov=netsmith --cov-report=term-missing
