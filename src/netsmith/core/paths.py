@@ -73,7 +73,8 @@ def reachability(graph: Graph, source: int) -> NDArray:
         # Fallback if dict returned
         return np.ones(graph.n_nodes, dtype=bool)
     # Convert to boolean: reachable if distance is not max
-    max_val = np.iinfo(np.int64).max
+    # Use the actual dtype's max value, not hardcoded int64.max
+    max_val = np.iinfo(dist.dtype).max
     return (dist != max_val).astype(bool)
 
 
