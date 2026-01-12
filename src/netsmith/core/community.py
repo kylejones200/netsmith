@@ -2,7 +2,7 @@
 Core community detection: modularity, Louvain hooks, label propagation hooks.
 """
 
-from typing import Dict, Literal, Optional
+from typing import Dict, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -74,7 +74,7 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
     """
     # Convert to NetworkX
     try:
-        import networkx as nx
+        import networkx  # noqa: F401
         from networkx.algorithms import community
     except ImportError:
         raise ImportError(
@@ -90,7 +90,10 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
     # Detect communities using Louvain
     try:
         communities_generator = community.louvain_communities(
-            nx_graph, weight="weight" if graph.weighted else None, resolution=resolution, seed=seed
+            nx_graph,
+            weight="weight" if graph.weighted else None,
+            resolution=resolution,
+            seed=seed,
         )
         communities = list(communities_generator)
     except AttributeError:
@@ -99,7 +102,9 @@ def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = N
             import community as community_louvain
 
             partition = community_louvain.best_partition(
-                nx_graph, weight="weight" if graph.weighted else None, random_state=seed
+                nx_graph,
+                weight="weight" if graph.weighted else None,
+                random_state=seed,
             )
             # Convert partition dict to list of sets
             n_communities = max(partition.values()) + 1
@@ -148,7 +153,7 @@ def label_propagation_hooks(graph: Graph, seed: Optional[int] = None) -> Dict:
     """
     # Convert to NetworkX
     try:
-        import networkx as nx
+        import networkx  # noqa: F401
         from networkx.algorithms import community
     except ImportError:
         raise ImportError(

@@ -68,7 +68,8 @@ def setup_logging(
     else:
         if format_style == "detailed":
             formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s"
+                "%(asctime)s - %(name)s - %(levelname)s - "
+                "%(module)s.%(funcName)s:%(lineno)d - %(message)s"
             )
         else:  # simple
             formatter = logging.Formatter("%(levelname)s: %(message)s")

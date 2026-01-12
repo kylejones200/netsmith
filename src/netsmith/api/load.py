@@ -2,12 +2,15 @@
 Load edge lists from various formats: pandas, polars, parquet, csv.
 """
 
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
 
 from ..engine.contracts import EdgeList
+
+if TYPE_CHECKING:
+    import pandas  # noqa: F401
+    import polars  # noqa: F401
 
 
 def load_edges(

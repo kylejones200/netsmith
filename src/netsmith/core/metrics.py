@@ -2,7 +2,7 @@
 Core network metrics: degree, centrality, assortativity, clustering, k-core, components.
 """
 
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray

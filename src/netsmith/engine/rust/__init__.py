@@ -10,7 +10,7 @@ try:
         """Compute degree sequence using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         # Convert EdgeList to format expected by Rust
         u = edges.u
@@ -27,7 +27,7 @@ try:
         """Compute strength sequence using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         u = edges.u
         v = edges.v
@@ -46,7 +46,7 @@ try:
         """Compute local clustering coefficients using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         u = edges.u
         v = edges.v
@@ -60,7 +60,7 @@ try:
         """Compute mean shortest path using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         u = edges.u
         v = edges.v
@@ -74,7 +74,7 @@ try:
         """Compute shortest paths from source using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         u = edges.u
         v = edges.v
@@ -88,7 +88,7 @@ try:
         """Compute connected components using Rust backend."""
         import numpy as np
 
-        from ..contracts import EdgeList
+        from ..contracts import EdgeList  # noqa: F401
 
         u = edges.u
         v = edges.v

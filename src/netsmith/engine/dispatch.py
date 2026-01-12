@@ -16,7 +16,7 @@ def _detect_backend(preference: Backend = "auto") -> str:
     """Detect available backend."""
     if preference == "rust":
         try:
-            import netsmith_rs  # type: ignore
+            import netsmith_rs  # type: ignore  # noqa: F401
 
             return "rust"
         except ImportError:
@@ -27,7 +27,7 @@ def _detect_backend(preference: Backend = "auto") -> str:
         return "python"
     else:  # auto
         try:
-            import netsmith_rs  # type: ignore
+            import netsmith_rs  # type: ignore  # noqa: F401
 
             return "rust"
         except ImportError:
