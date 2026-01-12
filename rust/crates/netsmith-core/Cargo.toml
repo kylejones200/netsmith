@@ -1,0 +1,16 @@
+[package]
+name = "netsmith-core"
+version = "0.1.0"
+authors = ["Kyle T. Jones <kyle@kyletjones.com>"]
+edition = "2021"
+description = "Core network analysis algorithms for NetSmith"
+license = "MIT"
+
+[dependencies]
+ndarray = { version = "0.15", features = ["rayon"] }
+rayon = "1.10"
+
+[dev-dependencies]
+approx = "0.5"
+rstest = "0.18"
+

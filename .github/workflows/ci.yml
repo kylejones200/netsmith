@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y libblas-dev liblapack-dev libbz2-dev liblzma-dev
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+      - name: Install
+        run: |
+          pip install -U pip maturin
+          # Install CPU-only PyTorch first (much smaller, ~200MB vs ~3GB with CUDA)
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # Install package without dev deps (to avoid reinstalling torch)
+          pip install -e .
+          # Install dev dependencies except torch (already installed)
+          pip install pytest pytest-cov black flake8 mypy isort PyYAML
+          # Install optional dependencies
+          pip install numba tslearn pynndescent pyreadr || true
+          # Verify torch is installed
+          python -c "import torch; print(f'✓ PyTorch {torch.__version__} (CPU-only) installed')"
+      - name: Run tests
+        env:
+          PYTHONHASHSEED: "0"
+        run: |
+          pytest -q

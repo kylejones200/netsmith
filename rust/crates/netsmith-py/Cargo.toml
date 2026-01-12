@@ -1,0 +1,29 @@
+[package]
+name = "netsmith-py"
+version = "0.1.0"
+authors = ["Kyle T. Jones <kyle@kyletjones.com>"]
+edition = "2021"
+description = "Python bindings for NetSmith network analysis library"
+license = "MIT"
+
+[lib]
+name = "netsmith_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.19", features = ["extension-module"] }
+numpy = "0.19"
+ndarray = { version = "0.15", features = ["rayon"] }
+rayon = "1.10"
+netsmith-core = { path = "../netsmith-core" }
+
+[features]
+default = []
+python = ["pyo3/auto-initialize"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+
