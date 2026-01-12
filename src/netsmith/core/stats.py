@@ -64,23 +64,6 @@ def confidence_intervals(
     back to numpy-based computation. For the "bootstrap" method, uses
     the bootstrap function from this module.
     """
-    """
-    Compute confidence intervals.
-
-    Parameters
-    ----------
-    data : array
-        Input data
-    alpha : float, default 0.05
-        Significance level
-    method : str, default "normal"
-        Method: "normal", "bootstrap", "percentile"
-
-    Returns
-    -------
-    ci : tuple
-        (lower, upper) confidence interval bounds
-    """
     # Note: This is a basic implementation, not a placeholder
     mean = np.mean(data)
     std = np.std(data)

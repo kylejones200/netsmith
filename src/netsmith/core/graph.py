@@ -6,12 +6,15 @@ Supports directed, undirected, weighted, multigraph as explicit modes.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
 
 from ..exceptions import ValidationError
+
+if TYPE_CHECKING:
+    from ..engine.contracts import EdgeList
 
 
 @dataclass
@@ -146,7 +149,7 @@ class Graph:
             self._out_degrees = out_degrees
         return self._out_degrees
 
-    def adjacency_matrix(self, format: str = "dense"):
+    def adjacency_matrix(self, format: str = "dense") -> Union[np.ndarray, "sp.spmatrix"]:
         """
         Adjacency matrix (lazy, dense by default for small graphs).
 
@@ -273,7 +276,7 @@ class Graph:
                 None if not self.weighted else np.array([]),
             )
 
-    def to_edge_list(self):
+    def to_edge_list(self) -> "EdgeList":
         """
         Convert graph to EdgeList data contract.
 
