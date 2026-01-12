@@ -25,7 +25,11 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           # Install package in editable mode using maturin develop
-          maturin develop
+          # This installs the Rust extension
+          maturin develop -m rust/crates/netsmith-py/Cargo.toml
+          # Install Python code (like in makefile: pip install -e .[pandas,polars,networkx])
+          # This installs the Python packages from src/
+          pip install -e .
           # Install dev dependencies
           pip install pytest pytest-cov black flake8 mypy isort PyYAML
           # Note: scipy, networkx, pandas, polars are optional and not required for core tests
