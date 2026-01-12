@@ -30,7 +30,7 @@ def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None)
     """
     # Convert to NetworkX for modularity computation
     try:
-        import networkx as nx
+        import networkx  # noqa: F401
         from networkx.algorithms import community
     except ImportError:
         raise ImportError(

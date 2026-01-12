@@ -3,7 +3,6 @@ Tests for core metrics functions.
 """
 
 import numpy as np
-import pytest
 
 from netsmith.core.graph import Graph
 from netsmith.core.metrics import clustering, components, degree, strength

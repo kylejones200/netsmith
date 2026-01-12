@@ -7,7 +7,6 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from ..engine.contracts import EdgeList
 
 
 def validate_edges(

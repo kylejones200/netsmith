@@ -3,11 +3,8 @@
 import os
 import sys
 import tempfile
-from unittest.mock import MagicMock, patch
 
-import networkx as nx
 import numpy as np
-import pytest
 from click.testing import CliRunner
 
 # Import the CLI module

@@ -3,7 +3,6 @@ Tests for engine dispatch (backend selection).
 """
 
 import numpy as np
-import pytest
 
 from netsmith.engine.contracts import EdgeList
 from netsmith.engine.dispatch import (

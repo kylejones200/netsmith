@@ -3,7 +3,6 @@ Tests for core paths functions.
 """
 
 import numpy as np
-import pytest
 
 from netsmith.core.graph import Graph
 from netsmith.core.paths import reachability, shortest_paths
