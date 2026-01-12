@@ -183,8 +183,14 @@ def compute_components(edges: EdgeList, backend: Backend = "auto") -> tuple[int,
             labels = components_rust(edges)
             n_components = int(np.max(labels) + 1) if len(labels) > 0 else 0
             return n_components, labels
-        except (ImportError, RuntimeError):
+        except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for components computation, using Python")
             pass
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in components computation: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
 
     from .python import components_python
 
@@ -268,7 +274,13 @@ def compute_communities(
 
             return communities_rust(edges, method)
         except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for communities computation, using Python")
             pass
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in communities computation: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
 
     from .python import communities_python
 

@@ -187,11 +187,9 @@ def clustering(graph: Graph, node: Optional[int] = None) -> Union[NDArray, float
         Clustering coefficients or single value
     """
     # Use engine layer for actual computation
-    from ..engine.contracts import EdgeList
     from ..engine.dispatch import compute_clustering
 
-    src, dst, weight = graph.edges_coo()
-    edges = EdgeList(u=src, v=dst, w=weight, directed=graph.directed, n_nodes=graph.n_nodes)
+    edges = graph.to_edge_list()
 
     clustering_values = compute_clustering(edges, backend="auto")
 
@@ -259,11 +257,9 @@ def components(graph: Graph, return_labels: bool = True) -> Union[int, NDArray]:
         Component labels or number of components
     """
     # Use engine layer for actual computation
-    from ..engine.contracts import EdgeList
     from ..engine.dispatch import compute_components
 
-    src, dst, weight = graph.edges_coo()
-    edges = EdgeList(u=src, v=dst, w=weight, directed=graph.directed, n_nodes=graph.n_nodes)
+    edges = graph.to_edge_list()
 
     n_components, labels = compute_components(edges, backend="auto")
 

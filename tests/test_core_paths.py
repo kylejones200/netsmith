@@ -90,10 +90,10 @@ class TestReachability:
         reachable = reachability(graph, source=0)
 
         assert len(reachable) == 4
-        assert reachable[0] == True  # noqa: E712
-        assert reachable[1] == True  # noqa: E712
-        assert reachable[2] == False  # noqa: E712  # Not reachable
-        assert reachable[3] == False  # noqa: E712  # Not reachable
+        assert bool(reachable[0]) is True
+        assert bool(reachable[1]) is True
+        assert bool(reachable[2]) is False  # Not reachable
+        assert bool(reachable[3]) is False  # Not reachable
 
     def test_reachability_directed(self):
         """Test reachability for directed graph."""
@@ -102,11 +102,11 @@ class TestReachability:
 
         reachable = reachability(graph, source=0)
 
-        assert reachable[0] == True  # noqa: E712
-        assert reachable[1] == True  # noqa: E712
-        assert reachable[2] == True  # noqa: E712
+        assert bool(reachable[0]) is True
+        assert bool(reachable[1]) is True
+        assert bool(reachable[2]) is True
 
         # Reverse direction
         reachable_rev = reachability(graph, source=2)
-        assert reachable_rev[0] == False  # noqa: E712  # Can't reach 0 from 2
-        assert reachable_rev[2] == True  # noqa: E712
+        assert bool(reachable_rev[0]) is False  # Can't reach 0 from 2
+        assert bool(reachable_rev[2]) is True

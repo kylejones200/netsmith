@@ -88,7 +88,9 @@ def reachability(graph: Graph, source: int) -> NDArray:
     if isinstance(dist, dict):
         # This should not happen when source is specified
         # If it does, it indicates a backend implementation issue
-        raise ValueError(
+        from ..exceptions import BackendError
+
+        raise BackendError(
             f"Unexpected dict return from compute_shortest_paths with source={source}. "
             f"This indicates a backend implementation issue."
         )
