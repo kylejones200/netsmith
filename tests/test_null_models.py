@@ -27,7 +27,6 @@ class TestNullModels:
 
         # Check that null graphs have same number of nodes
         # Note: edge count may differ due to multi-edges/self-loops removal
-        original_deg = degree(graph)
         for null_graph in result["graphs"][:3]:  # Check first few
             assert null_graph.n_nodes == graph.n_nodes
             assert null_graph.n_edges > 0  # Should have edges, but count may vary

@@ -11,13 +11,13 @@ import sys
 # Add parent directory to path for development
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import logging
+import logging  # noqa: E402
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from netsmith.core import Graph
-from netsmith.core.metrics import clustering, components, degree
-from netsmith.core.paths import shortest_paths
+from netsmith.core import Graph  # noqa: E402
+from netsmith.core.metrics import clustering, components, degree  # noqa: E402
+from netsmith.core.paths import shortest_paths  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def main():
 
     # Convert to NetworkX (optional)
     try:
-        import networkx as nx
+        import networkx  # noqa: F401
 
         nx_graph = graph.as_networkx()
         logger.info("NetworkX Conversion:")

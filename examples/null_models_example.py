@@ -9,13 +9,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import logging
+import logging  # noqa: E402
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from netsmith.core import Graph
-from netsmith.core.metrics import clustering
-from netsmith.core.nulls import null_models, permutation_tests
+from netsmith.core import Graph  # noqa: E402
+from netsmith.core.metrics import clustering  # noqa: E402
+from netsmith.core.nulls import null_models, permutation_tests  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
