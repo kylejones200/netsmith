@@ -58,6 +58,10 @@ strip = true
 # Include LICENSE file in source distribution
 sdist-include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
+# Setuptools configuration for src/ layout
+[tool.setuptools.packages.find]
+where = ["src"]
+
 # MyPy configuration
 [tool.mypy]
 python_version = "3.12"
