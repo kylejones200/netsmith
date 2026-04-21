@@ -120,7 +120,7 @@ def engagement_score(
     member_set = set(member_ids)
     n = len(member_set)
     if n == 0 or not comms:
-        return 0.0, {"participation_rate": 0.0, "balance_score": 0.0, "gini": 0.0}
+        return 0.0, {"participation_rate": 0.0, "balance_score": 0.0, "gini": 0.0, "two_way_rate": 0.0}
 
     sender_ids = [c.sender_id for c in comms]
     active = {s for s in sender_ids if s in member_set}
