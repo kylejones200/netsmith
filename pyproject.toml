@@ -97,3 +97,9 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 line_length = 100
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
