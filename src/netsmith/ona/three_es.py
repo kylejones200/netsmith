@@ -32,7 +32,7 @@ class Communication:
     sender_id: str | int
     receiver_id: str | int | None = None
     duration_minutes: float = 0.0
-    comm_type: str = "email"          # email | meeting | face-to-face | chat
+    comm_type: str = "email"  # email | meeting | face-to-face | chat
     is_cross_team: bool = False
 
 
@@ -49,6 +49,7 @@ class ThreeEsResult:
 
 # ── Internals ─────────────────────────────────────────────────────────────────
 
+
 def gini_coefficient(values: Sequence[float]) -> float:
     """Gini coefficient of a distribution. 0 = perfect equality, 1 = total inequality."""
     arr = np.asarray(values, dtype=float)
@@ -61,6 +62,7 @@ def gini_coefficient(values: Sequence[float]) -> float:
 
 
 # ── Public scoring functions ──────────────────────────────────────────────────
+
 
 def energy_score(
     comms: Sequence[Communication],
@@ -120,7 +122,12 @@ def engagement_score(
     member_set = set(member_ids)
     n = len(member_set)
     if n == 0 or not comms:
-        return 0.0, {"participation_rate": 0.0, "balance_score": 0.0, "gini": 0.0, "two_way_rate": 0.0}
+        return 0.0, {
+            "participation_rate": 0.0,
+            "balance_score": 0.0,
+            "gini": 0.0,
+            "two_way_rate": 0.0,
+        }
 
     sender_ids = [c.sender_id for c in comms]
     active = {s for s in sender_ids if s in member_set}

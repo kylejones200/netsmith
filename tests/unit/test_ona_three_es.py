@@ -12,7 +12,6 @@ from netsmith.ona import (
     score_team,
 )
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 MEMBERS = ["alice", "bob", "carol", "dave"]
@@ -20,12 +19,19 @@ MEMBERS = ["alice", "bob", "carol", "dave"]
 
 def _comms(pairs: list[tuple], *, cross: bool = False, comm_type: str = "email", dur: float = 10.0):
     return [
-        Communication(sender_id=a, receiver_id=b, duration_minutes=dur, comm_type=comm_type, is_cross_team=cross)
+        Communication(
+            sender_id=a,
+            receiver_id=b,
+            duration_minutes=dur,
+            comm_type=comm_type,
+            is_cross_team=cross,
+        )
         for a, b in pairs
     ]
 
 
 # ── gini_coefficient ──────────────────────────────────────────────────────────
+
 
 def test_gini_perfect_equality():
     assert gini_coefficient([10, 10, 10, 10]) == pytest.approx(0.0, abs=1e-9)
@@ -47,6 +53,7 @@ def test_gini_all_zeros():
 
 # ── energy_score ─────────────────────────────────────────────────────────────
 
+
 def test_energy_no_comms():
     score, detail = energy_score([], MEMBERS, days=30)
     assert score == 0.0
@@ -55,9 +62,9 @@ def test_energy_no_comms():
 
 def test_energy_face_to_face_boosts_score():
     email_comms = _comms([("alice", "bob")] * 10, comm_type="email")
-    ftf_comms   = _comms([("alice", "bob")] * 10, comm_type="face-to-face")
+    ftf_comms = _comms([("alice", "bob")] * 10, comm_type="face-to-face")
     e_email, _ = energy_score(email_comms, MEMBERS)
-    e_ftf,   _ = energy_score(ftf_comms,   MEMBERS)
+    e_ftf, _ = energy_score(ftf_comms, MEMBERS)
     assert e_ftf > e_email
 
 
@@ -76,12 +83,19 @@ def test_energy_no_members():
 
 # ── engagement_score ─────────────────────────────────────────────────────────
 
+
 def test_engagement_all_active_balanced():
     # Everyone sends roughly the same amount
-    comms = _comms([
-        ("alice", "bob"), ("bob", "carol"), ("carol", "dave"), ("dave", "alice"),
-        ("alice", "carol"), ("bob", "dave"),
-    ])
+    comms = _comms(
+        [
+            ("alice", "bob"),
+            ("bob", "carol"),
+            ("carol", "dave"),
+            ("dave", "alice"),
+            ("alice", "carol"),
+            ("bob", "dave"),
+        ]
+    )
     score, detail = engagement_score(comms, MEMBERS)
     assert score > 50.0
     assert detail["participation_rate"] == 1.0
@@ -108,6 +122,7 @@ def test_engagement_bounded():
 
 # ── exploration_score ────────────────────────────────────────────────────────
 
+
 def test_exploration_no_cross_team():
     comms = _comms([("alice", "bob")] * 10, cross=False)
     score, detail = exploration_score(comms, MEMBERS)
@@ -130,6 +145,7 @@ def test_exploration_bounded():
 
 # ── overall_score ─────────────────────────────────────────────────────────────
 
+
 def test_overall_weighted_average():
     result = overall_score(100.0, 100.0, 100.0)
     assert result == 100.0
@@ -147,14 +163,15 @@ def test_overall_custom_weights():
 
 # ── score_team ────────────────────────────────────────────────────────────────
 
+
 def test_score_team_returns_result():
     comms = _comms([("alice", "bob"), ("bob", "carol"), ("carol", "alice")], cross=True)
     result = score_team(comms, MEMBERS, days=7)
     assert isinstance(result, ThreeEsResult)
-    assert 0.0 <= result.energy    <= 100.0
+    assert 0.0 <= result.energy <= 100.0
     assert 0.0 <= result.engagement <= 100.0
     assert 0.0 <= result.exploration <= 100.0
-    assert 0.0 <= result.overall   <= 100.0
+    assert 0.0 <= result.overall <= 100.0
 
 
 def test_score_team_detail_keys():

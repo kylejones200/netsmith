@@ -25,10 +25,11 @@ class SiloResult:
     components: list[frozenset[str]]  # each component is a set of actor names
     component_count: int
     total_actors: int
-    severity: str                     # 'low' | 'medium' | 'high'
+    severity: str  # 'low' | 'medium' | 'high'
 
 
 # ── Union-Find ────────────────────────────────────────────────────────────────
+
 
 class _UF:
     def __init__(self, nodes: Iterable[str]) -> None:
@@ -60,6 +61,7 @@ class _UF:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def detect_silos(
     edges: Iterable[tuple[str, str]],
@@ -114,18 +116,20 @@ def detect_silos(
 
         total = sum(len(c) for c in comps)
         severity = (
-            "high"   if len(comps) >= 3 or total >= 10 else
-            "medium" if len(comps) == 2 and total >= 4  else
-            "low"
+            "high"
+            if len(comps) >= 3 or total >= 10
+            else "medium" if len(comps) == 2 and total >= 4 else "low"
         )
 
-        results.append(SiloResult(
-            cluster_id=cid,
-            cluster_name=cluster_names.get(cid, str(cid)),
-            components=comps,
-            component_count=len(comps),
-            total_actors=total,
-            severity=severity,
-        ))
+        results.append(
+            SiloResult(
+                cluster_id=cid,
+                cluster_name=cluster_names.get(cid, str(cid)),
+                components=comps,
+                component_count=len(comps),
+                total_actors=total,
+                severity=severity,
+            )
+        )
 
     return sorted(results, key=lambda r: ("low", "medium", "high").index(r.severity), reverse=True)

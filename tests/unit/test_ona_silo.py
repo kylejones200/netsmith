@@ -3,7 +3,6 @@
 import pytest
 from netsmith.ona import SiloResult, detect_silos
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 # Group A: alice, bob, carol — all talk to each other
@@ -11,19 +10,28 @@ from netsmith.ona import SiloResult, detect_silos
 # Neither group talks to the other → silo on any shared cluster
 
 EDGES_SILOED = [
-    ("alice", "bob"), ("bob", "carol"), ("alice", "carol"),  # group A internal
-    ("dave", "eve"),  ("eve", "frank"), ("dave", "frank"),   # group B internal
+    ("alice", "bob"),
+    ("bob", "carol"),
+    ("alice", "carol"),  # group A internal
+    ("dave", "eve"),
+    ("eve", "frank"),
+    ("dave", "frank"),  # group B internal
 ]
 
 ACTOR_CLUSTERS_SILOED = {
-    "alice": ["finance"], "bob": ["finance"], "carol": ["finance"],
-    "dave":  ["finance"], "eve": ["finance"], "frank": ["finance"],
+    "alice": ["finance"],
+    "bob": ["finance"],
+    "carol": ["finance"],
+    "dave": ["finance"],
+    "eve": ["finance"],
+    "frank": ["finance"],
 }
 
-EDGES_CONNECTED = EDGES_SILOED + [("carol", "dave")]   # bridge between groups
+EDGES_CONNECTED = EDGES_SILOED + [("carol", "dave")]  # bridge between groups
 
 
 # ── Basic detection ───────────────────────────────────────────────────────────
+
 
 def test_detects_silo_when_groups_disconnected():
     results = detect_silos(EDGES_SILOED, ACTOR_CLUSTERS_SILOED)
@@ -49,6 +57,7 @@ def test_silo_result_fields():
 
 # ── Severity ─────────────────────────────────────────────────────────────────
 
+
 def test_severity_high_three_components():
     edges = [("a", "b"), ("c", "d"), ("e", "f")]  # three isolated pairs
     clusters = {n: ["topic"] for n in "abcdef"}
@@ -64,6 +73,7 @@ def test_severity_medium_two_small_groups():
 
 
 # ── Edge cases ────────────────────────────────────────────────────────────────
+
 
 def test_empty_edges_no_silos():
     clusters = {"alice": ["finance"], "bob": ["finance"]}
@@ -81,8 +91,10 @@ def test_single_actor_per_cluster_no_silo():
 def test_multiple_clusters_independent():
     edges = [("alice", "bob"), ("carol", "dave")]
     clusters = {
-        "alice": ["finance"], "bob": ["finance"],
-        "carol": ["legal"],   "dave": ["legal"],
+        "alice": ["finance"],
+        "bob": ["finance"],
+        "carol": ["legal"],
+        "dave": ["legal"],
     }
     # No shared cluster between disconnected groups
     results = detect_silos(edges, clusters)
@@ -94,10 +106,14 @@ def test_results_sorted_by_severity_desc():
     edges = [("a", "b"), ("c", "d"), ("e", "f"), ("g", "h")]
     # topic1: 4 components → high; topic2: 2 components → medium
     clusters = {
-        "a": ["topic1"], "b": ["topic1"],
-        "c": ["topic1"], "d": ["topic1"],
-        "e": ["topic1"], "f": ["topic1"],
-        "g": ["topic2"], "h": ["topic2"],
+        "a": ["topic1"],
+        "b": ["topic1"],
+        "c": ["topic1"],
+        "d": ["topic1"],
+        "e": ["topic1"],
+        "f": ["topic1"],
+        "g": ["topic2"],
+        "h": ["topic2"],
     }
     extra_edges = [("g", "h")]  # topic2: 1 component, filtered out
     all_edges = edges  # topic1: 4 isolated pairs
