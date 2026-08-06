@@ -167,6 +167,51 @@ try:
         )
         return np.asarray(scores, dtype=np.float64)
 
+    def core_numbers_rust(edges):
+        """Compute k-core numbers using the Rust backend."""
+        import numpy as np
+
+        from ..contracts import EdgeList  # noqa: F401
+
+        _check_non_negative_nodes(edges)
+        edge_array = np.column_stack([edges.u, edges.v]).astype(np.uintp)
+        cores = netsmith_rs.core_numbers_rust(edges.n_nodes, edge_array)
+        return np.asarray(cores, dtype=np.int64)
+
+    def label_propagation_rust(edges, seed=None, max_iter=100):
+        """Detect communities by label propagation using the Rust backend."""
+        import numpy as np
+
+        from ..contracts import EdgeList  # noqa: F401
+
+        _check_non_negative_nodes(edges)
+        edge_array = np.column_stack([edges.u, edges.v]).astype(np.uintp)
+        weights = None if edges.w is None else np.ascontiguousarray(edges.w, dtype=np.float64)
+        if seed is None:
+            seed = int(np.random.default_rng().integers(0, 2**63))
+
+        labels = netsmith_rs.label_propagation_rust(
+            edges.n_nodes, edge_array, weights, int(seed) % (2**64), int(max_iter)
+        )
+        labels = np.asarray(labels, dtype=np.int64)
+        n_communities = int(labels.max()) + 1 if labels.size else 0
+        return {"communities": labels, "n_communities": n_communities}
+
+    def configuration_model_rust(degrees, seed):
+        """Sample a simple graph with the given degree sequence (Rust backend)."""
+        import numpy as np
+
+        degrees = np.ascontiguousarray(degrees, dtype=np.uintp)
+        edges, discarded = netsmith_rs.configuration_model_rust(degrees, int(seed) % (2**64))
+        return np.asarray(edges, dtype=np.int64), int(discarded)
+
+    def erdos_renyi_rust(n, m, seed):
+        """Sample a random simple graph with n nodes and m edges (Rust backend)."""
+        import numpy as np
+
+        edges = netsmith_rs.erdos_renyi_rust(int(n), int(m), int(seed) % (2**64))
+        return np.asarray(edges, dtype=np.int64)
+
     def rewire_degree_preserving_rust(edges, n_samples, target_swaps, max_attempts, seed):
         """Generate degree-preserving null models using the Rust backend.
 
@@ -273,6 +318,18 @@ except ImportError:
     def betweenness_rust(edges, normalized=True, weight=None):
         raise ImportError("Rust backend not available")
 
+    def core_numbers_rust(edges):
+        raise ImportError("Rust backend not available")
+
+    def label_propagation_rust(edges, seed=None, max_iter=100):
+        raise ImportError("Rust backend not available")
+
+    def configuration_model_rust(degrees, seed):
+        raise ImportError("Rust backend not available")
+
+    def erdos_renyi_rust(n, m, seed):
+        raise ImportError("Rust backend not available")
+
     def rewire_degree_preserving_rust(edges, n_samples, target_swaps, max_attempts, seed):
         raise ImportError("Rust backend not available")
 
@@ -295,6 +352,10 @@ __all__ = [
     "shortest_paths_rust",
     "shortest_paths_multi_rust",
     "betweenness_rust",
+    "core_numbers_rust",
+    "label_propagation_rust",
+    "configuration_model_rust",
+    "erdos_renyi_rust",
     "rewire_degree_preserving_rust",
     "louvain_rust",
     "modularity_rust",

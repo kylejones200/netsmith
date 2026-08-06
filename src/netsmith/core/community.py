@@ -12,15 +12,13 @@ from .graph import Graph
 
 logger = logging.getLogger(__name__)
 
-CommunityBackend = Literal["auto", "rust", "python", "networkx"]
+CommunityBackend = Literal["auto", "rust", "python"]
 
 
 def _resolve_backend(backend: CommunityBackend) -> str:
     """Pick the backend to run on, preferring the Rust kernel."""
-    if backend not in ("auto", "rust", "python", "networkx"):
-        raise ValueError(
-            f"unknown backend: {backend!r} (expected 'auto', 'rust', 'python' or 'networkx')"
-        )
+    if backend not in ("auto", "rust", "python"):
+        raise ValueError(f"unknown backend: {backend!r} (expected 'auto', 'rust' or 'python')")
     if backend != "auto":
         if backend == "rust":
             from ..engine.rust import _RUST_AVAILABLE
@@ -54,8 +52,8 @@ def modularity(
         Edge weight attribute name (currently ignored; uses graph weights if available)
     backend : str, default "auto"
         "auto" (Rust if available, else Python), "rust", "python", or
-        "networkx". All backends use the same definition and agree to
-        floating-point tolerance.
+        All backends use the same definition and agree to floating-point
+        tolerance.
 
     Returns
     -------
@@ -63,11 +61,6 @@ def modularity(
         Modularity score in range [-0.5, 1.0]. Higher values indicate
         stronger community structure. Values >0.3 typically indicate
         meaningful communities.
-
-    Raises
-    ------
-    ImportError
-        If the "networkx" backend is selected and NetworkX is not installed
 
     Notes
     -----
@@ -87,31 +80,6 @@ def modularity(
         from ..engine.python import modularity_python
 
         return modularity_python(edges, np.asarray(communities))
-
-    # Convert to NetworkX for modularity computation
-    try:
-        import networkx  # noqa: F401
-        from networkx.algorithms import community
-    except ImportError:
-        raise ImportError(
-            "networkx is required for modularity computation. Install with: pip install networkx"
-        )
-
-    nx_graph = graph.as_networkx()
-
-    # Convert communities array to list of sets
-    n_communities = int(np.max(communities) + 1)
-    community_sets = [set() for _ in range(n_communities)]
-    for node, comm_id in enumerate(communities):
-        community_sets[int(comm_id)].add(node)
-
-    # Compute modularity
-    if graph.weighted:
-        modularity_score = community.modularity(nx_graph, community_sets, weight="weight")
-    else:
-        modularity_score = community.modularity(nx_graph, community_sets)
-
-    return float(modularity_score)
 
 
 def louvain_hooks(
@@ -134,8 +102,7 @@ def louvain_hooks(
         Random seed for the node visit order. Each backend is reproducible for
         a given seed, but the same seed does not carry across backends.
     backend : str, default "auto"
-        "auto" (Rust if available, else Python), "rust", "python", or
-        "networkx".
+        "auto" (Rust if available, else Python), "rust", or "python".
 
     Returns
     -------
@@ -157,81 +124,29 @@ def louvain_hooks(
 
         return louvain_python(edges, resolution=resolution, seed=seed)
 
-    # Convert to NetworkX
-    try:
-        import networkx  # noqa: F401
-        from networkx.algorithms import community
-    except ImportError:
-        raise ImportError(
-            "networkx is required for Louvain community detection. "  # noqa: E501
-            "Install with: pip install networkx"
-        )
 
-    nx_graph = graph.as_networkx()
-
-    # Convert to undirected for community detection
-    if nx_graph.is_directed():
-        nx_graph = nx_graph.to_undirected()
-
-    # Detect communities using Louvain
-    try:
-        communities_generator = community.louvain_communities(
-            nx_graph,
-            weight="weight" if graph.weighted else None,
-            resolution=resolution,
-            seed=seed,
-        )
-        communities = list(communities_generator)
-    except AttributeError:
-        # Fallback for older NetworkX versions
-        try:
-            import community as community_louvain
-
-            partition = community_louvain.best_partition(
-                nx_graph,
-                weight="weight" if graph.weighted else None,
-                random_state=seed,
-            )
-            # Convert partition dict to list of sets
-            n_communities = max(partition.values()) + 1
-            communities = [set() for _ in range(n_communities)]
-            for node, comm_id in partition.items():
-                communities[comm_id].add(node)
-        except ImportError:
-            raise ImportError(
-                "python-louvain is required for Louvain community detection. "  # noqa: E501
-                "Install with: pip install python-louvain"
-            )
-
-    # Compute modularity
-    if graph.weighted:
-        modularity_score = community.modularity(nx_graph, communities, weight="weight")
-    else:
-        modularity_score = community.modularity(nx_graph, communities)
-
-    # Convert communities to array
-    community_array = np.zeros(graph.n_nodes, dtype=np.int64)
-    for comm_id, comm_set in enumerate(communities):
-        for node in comm_set:
-            community_array[node] = comm_id
-
-    return {
-        "communities": community_array,
-        "modularity": float(modularity_score),
-        "n_communities": len(communities),
-    }
-
-
-def label_propagation_hooks(graph: Graph, seed: Optional[int] = None) -> Dict:
+def label_propagation_hooks(
+    graph: Graph,
+    seed: Optional[int] = None,
+    max_iter: int = 100,
+    backend: CommunityBackend = "auto",
+) -> Dict:
     """
     Detect communities using asynchronous label propagation.
 
     Parameters
     ----------
     graph : Graph
-        Input graph (converted to undirected for community detection)
+        Input graph. Treated as undirected; parallel and reciprocal edges are
+        merged by summing their weights.
     seed : int, optional
-        Random seed for reproducibility (algorithm has stochastic elements)
+        Random seed for the visit order and tie-breaks. Each backend is
+        reproducible for a given seed, but the same seed does not carry across
+        backends.
+    max_iter : int, default 100
+        Cap on passes
+    backend : str, default "auto"
+        "auto" (Rust if available, else Python), "rust", or "python".
 
     Returns
     -------
@@ -240,42 +155,16 @@ def label_propagation_hooks(graph: Graph, seed: Optional[int] = None) -> Dict:
         - "communities": NDArray[np.int64] (n_nodes,) with community IDs
         - "n_communities": int number of communities found
 
-    Raises
-    ------
-    ImportError
-        If NetworkX is not installed (required for label propagation)
-
     Notes
     -----
-    Label propagation is a fast, local algorithm. Nodes iteratively adopt
-    the label most common among their neighbors. The algorithm converges
-    when labels stabilize. Works well for graphs with clear community structure.
+    Label propagation is fast and parameter-free, but it optimizes nothing
+    explicitly: on graphs without clear structure it can collapse everything
+    into one community. Prefer `louvain_hooks` when you want a partition you
+    can defend by its modularity.
     """
-    # Convert to NetworkX
-    try:
-        import networkx  # noqa: F401
-        from networkx.algorithms import community
-    except ImportError:
-        raise ImportError(
-            "networkx is required for label propagation. Install with: pip install networkx"
-        )
+    from ..engine.dispatch import compute_label_propagation
 
-    nx_graph = graph.as_networkx()
-
-    # Convert to undirected
-    if nx_graph.is_directed():
-        nx_graph = nx_graph.to_undirected()
-
-    # Detect communities using label propagation
-    communities_generator = community.asyn_lpa_communities(
-        nx_graph, weight="weight" if graph.weighted else None, seed=seed
+    _resolve_backend(backend)
+    return compute_label_propagation(
+        graph.to_edge_list(), seed=seed, max_iter=max_iter, backend=backend
     )
-    communities = list(communities_generator)
-
-    # Convert communities to array
-    community_array = np.zeros(graph.n_nodes, dtype=np.int64)
-    for comm_id, comm_set in enumerate(communities):
-        for node in comm_set:
-            community_array[node] = comm_id
-
-    return {"communities": community_array, "n_communities": len(communities)}

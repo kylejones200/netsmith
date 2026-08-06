@@ -280,6 +280,82 @@ def modularity_python(edges: EdgeList, labels: NDArray, resolution: float = 1.0)
     return float(_modularity(graph, labels_list, resolution))
 
 
+def label_propagation_python(
+    edges: EdgeList, seed: Optional[int] = None, max_iter: int = 100
+) -> Dict:
+    """
+    Detect communities by asynchronous label propagation (Python backend).
+
+    Every node starts alone and repeatedly adopts whichever label carries the
+    most edge weight among its neighbours, updating in place so changes spread
+    within a pass. Ties are broken at random, so `seed` decides the outcome on
+    any graph with ties.
+
+    Parameters
+    ----------
+    edges : EdgeList
+        Edge list, treated as undirected
+    seed : int, optional
+        Random seed for the visit order and tie-breaks
+    max_iter : int, default 100
+        Cap on passes
+
+    Returns
+    -------
+    result : dict
+        "communities" (array of ids) and "n_communities"
+
+    Notes
+    -----
+    Faster than Louvain and needs no resolution parameter, but it optimizes
+    nothing explicitly: on graphs without clear structure it can collapse into
+    a single community. Prefer `louvain_python` for a partition you can defend
+    by its modularity.
+    """
+    if max_iter < 1:
+        raise ValueError("max_iter must be at least 1")
+
+    n = int(edges.n_nodes)
+    if n == 0:
+        return {"communities": np.zeros(0, dtype=np.int64), "n_communities": 0}
+
+    adj, _self_loops, _degrees, _m = _build_graph(n, edges.u, edges.v, edges.w)
+    labels = list(range(n))
+    rng = random.Random(seed)
+    order = list(range(n))
+
+    for _ in range(max_iter):
+        rng.shuffle(order)
+        changed = False
+
+        for node in order:
+            if not adj[node]:
+                continue
+
+            weight_to: Dict[int, float] = {}
+            for neighbour, weight in adj[node].items():
+                label = labels[neighbour]
+                weight_to[label] = weight_to.get(label, 0.0) + weight
+
+            best_weight = max(weight_to.values())
+            # Choose uniformly among ties, so the visit order alone does not
+            # decide it.
+            best = rng.choice([lab for lab, w in weight_to.items() if w == best_weight])
+
+            if best != labels[node]:
+                labels[node] = best
+                changed = True
+
+        if not changed:
+            break
+
+    n_communities = _renumber(labels)
+    return {
+        "communities": np.asarray(labels, dtype=np.int64),
+        "n_communities": n_communities,
+    }
+
+
 def communities_python(edges: EdgeList, method: str = "louvain") -> NDArray[np.int64]:
     """
     Compute community assignments (Python backend).

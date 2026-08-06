@@ -315,6 +315,65 @@ def compute_betweenness(
     return betweenness_python(edges, normalized=normalized, weight=weight)
 
 
+def compute_core_numbers(edges: EdgeList, backend: Backend = "auto") -> NDArray[np.int64]:
+    """
+    Compute k-core numbers.
+
+    Parameters
+    ----------
+    edges : EdgeList
+        Edge list, treated as undirected
+    backend : str, default "auto"
+        Backend: "auto", "python", or "rust"
+
+    Returns
+    -------
+    core_numbers : array (n_nodes,)
+        The largest k for which each node survives in the k-core
+    """
+    kernel = _rust_kernel("core_numbers_rust", backend)
+    if kernel is not None:
+        return kernel(edges)
+
+    from .python import core_numbers_python
+
+    return core_numbers_python(edges)
+
+
+def compute_label_propagation(
+    edges: EdgeList,
+    seed: Optional[int] = None,
+    max_iter: int = 100,
+    backend: Backend = "auto",
+) -> Dict[str, object]:
+    """
+    Detect communities by asynchronous label propagation.
+
+    Parameters
+    ----------
+    edges : EdgeList
+        Edge list, treated as undirected
+    seed : int, optional
+        Random seed for the visit order and tie-breaks
+    max_iter : int, default 100
+        Cap on passes
+    backend : str, default "auto"
+        Backend: "auto", "python", or "rust"
+
+    Returns
+    -------
+    result : dict
+        "communities" (array of ids) and "n_communities"
+    """
+    kernel = _rust_kernel("label_propagation_rust", backend)
+    if kernel is not None:
+        return kernel(edges, seed=seed, max_iter=max_iter)
+
+    from .python import label_propagation_python
+
+    return label_propagation_python(edges, seed=seed, max_iter=max_iter)
+
+
 def compute_communities(
     edges: EdgeList, method: str = "louvain", backend: Backend = "auto"
 ) -> NDArray[np.int64]:

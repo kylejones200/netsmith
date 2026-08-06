@@ -12,7 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- NetworkX is no longer needed to compute anything. It backed k-core, label
+  propagation, the configuration and Erdos-Renyi null models, and a redundant
+  `backend="networkx"` path on `louvain_hooks` / `modularity`; all four are now
+  Rust kernels with pure-Python fallbacks, and the redundant backend is gone.
+  `Graph.as_networkx()` stays as interop and raises a clear `ImportError` when
+  NetworkX is absent — `tests/test_no_networkx_dependency.py` runs the public
+  surface with `import networkx` forced to fail. It remains a dev dependency,
+  because an independent reference implementation to test against is worth
+  keeping.
+
 ### Added
+- k-core decomposition, label propagation, and the configuration and
+  Erdos-Renyi null models as Rust kernels (`kcore::core_numbers`,
+  `community::label_propagation`, `nulls::configuration_model`,
+  `nulls::erdos_renyi`), each reachable through the engine dispatch with a
+  Python fallback. `k_core` now returns core numbers for every node without
+  needing a `k` argument; the k-core is `core_numbers >= k`.
 - Degree-preserving null models in Rust. `nulls::degree_preserving_rewire` and
   `degree_preserving_rewire_samples` randomize a graph by double edge swap,
   keeping every node's degree while destroying the wiring, with the samples
@@ -83,6 +100,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — silent failures
 These all returned a plausible number instead of reporting a problem.
+
+- The configuration model silently returned graphs whose degrees fell short of
+  the sequence asked for, because simplifying the stub pairing drops self-loops
+  and repeats. The count of discarded pairings is now reported alongside the
+  samples.
 
 - The two backends disagreed on what "unreachable" means in a distance array:
   the Rust kernel returned `usize::MAX` as uint64, the Python one `int64` max,

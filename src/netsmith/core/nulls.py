@@ -11,55 +11,6 @@ from .graph import Graph
 Backend = Literal["auto", "python", "rust"]
 
 
-def _degree_preserving_rust(
-    graph: Graph, n_samples: int, seed: Optional[int], swaps_per_edge: int, backend: str
-) -> Optional[Dict]:
-    """
-    Generate degree-preserving nulls with the Rust kernel.
-
-    Returns None when the Rust backend is not selected or not available, so the
-    caller can fall back to NetworkX. Never returns a partially randomized
-    sample without saying so.
-    """
-    from ..engine.dispatch import _rust_kernel
-
-    kernel = _rust_kernel("rewire_degree_preserving_rust", backend)
-    if kernel is None:
-        return None
-
-    edges = graph.to_edge_list()
-    n_edges = len(edges.u)
-    target_swaps = swaps_per_edge * n_edges
-    # The same allowance NetworkX's double_edge_swap uses.
-    max_attempts = 100 * n_edges if n_edges else 0
-    if seed is None:
-        seed = int(np.random.default_rng().integers(0, 2**63))
-
-    rewired, swaps, _attempts = kernel(
-        edges, n_samples, target_swaps, max_attempts, int(seed) % (2**64)
-    )
-
-    short = [i for i, done in enumerate(swaps) if done < target_swaps]
-    if short:
-        raise ValueError(
-            f"degree-preserving randomization reached only {swaps[short[0]]} of "
-            f"{target_swaps} swaps on sample {short[0]}. Graphs with too few "
-            f"swappable edges have no meaningful degree-preserving null, and "
-            f"returning the observed graph as its own null would make any test "
-            f"against it meaningless."
-        )
-
-    graphs = [
-        Graph(
-            edges=[(int(u), int(v)) for u, v in sample],
-            n_nodes=graph.n_nodes,
-            directed=False,
-        )
-        for sample in rewired
-    ]
-    return {"graphs": graphs, "method": "degree_preserving", "n_samples": len(graphs)}
-
-
 def null_models(
     graph: Graph,
     method: Literal["configuration", "erdos_renyi", "degree_preserving"] = "configuration",
@@ -122,83 +73,119 @@ def null_models(
     if method not in ("configuration", "erdos_renyi", "degree_preserving"):
         raise ValueError(f"Unknown null model method: {method}")
 
-    if method == "degree_preserving":
-        rewired = _degree_preserving_rust(graph, n_samples, seed, swaps_per_edge, backend)
-        if rewired is not None:
-            return rewired
+    if seed is None:
+        seed = int(np.random.default_rng().integers(0, 2**63))
+    edges = graph.to_edge_list()
 
-    try:
-        import networkx as nx
-    except ImportError:
-        raise ImportError(
-            "networkx is required for null model generation. Install with: pip install networkx"
+    if method == "degree_preserving":
+        return _degree_preserving(graph, edges, n_samples, seed, swaps_per_edge, backend)
+    if method == "configuration":
+        return _configuration(graph, edges, n_samples, seed, backend)
+    return _erdos_renyi(graph, edges, n_samples, seed, backend)
+
+
+def _sample_graphs(graph: Graph, edge_arrays) -> list:
+    """Wrap sampled edge arrays back into Graph objects."""
+    return [
+        Graph(
+            edges=[(int(u), int(v)) for u, v in sample],
+            n_nodes=graph.n_nodes,
+            directed=False,
+        )
+        for sample in edge_arrays
+    ]
+
+
+def _configuration(graph: Graph, edges, n_samples: int, seed: int, backend: str) -> Dict:
+    """Sample graphs with the observed degree sequence.
+
+    Simplifying the stub pairing drops self-loops and repeated edges, so the
+    realized degrees can fall a little short. The shortfall is reported rather
+    than left for the caller to discover.
+    """
+    from ..engine.dispatch import _rust_kernel
+
+    degrees = graph.degree_sequence()
+    kernel = _rust_kernel("configuration_model_rust", backend)
+
+    samples = []
+    discarded_total = 0
+    for i in range(n_samples):
+        if kernel is not None:
+            sample, discarded = kernel(degrees, seed + i)
+        else:
+            from ..engine.python import configuration_model_python
+
+            sample, discarded = configuration_model_python(degrees, seed=seed + i)
+        samples.append(sample)
+        discarded_total += discarded
+
+    return {
+        "graphs": _sample_graphs(graph, samples),
+        "method": "configuration",
+        "n_samples": len(samples),
+        "discarded_pairings": discarded_total,
+    }
+
+
+def _erdos_renyi(graph: Graph, edges, n_samples: int, seed: int, backend: str) -> Dict:
+    """Sample graphs with the observed node and edge counts, wired at random."""
+    from ..engine.dispatch import _rust_kernel
+
+    n_edges = len(edges.u)
+    kernel = _rust_kernel("erdos_renyi_rust", backend)
+
+    samples = []
+    for i in range(n_samples):
+        if kernel is not None:
+            samples.append(kernel(graph.n_nodes, n_edges, seed + i))
+        else:
+            from ..engine.python import erdos_renyi_python
+
+            samples.append(erdos_renyi_python(graph.n_nodes, n_edges, seed=seed + i))
+
+    return {
+        "graphs": _sample_graphs(graph, samples),
+        "method": "erdos_renyi",
+        "n_samples": len(samples),
+    }
+
+
+def _degree_preserving(
+    graph: Graph, edges, n_samples: int, seed: int, swaps_per_edge: int, backend: str
+) -> Dict:
+    """Randomize by double edge swap, keeping every degree."""
+    from ..engine.dispatch import _rust_kernel
+
+    n_edges = len(edges.u)
+    target_swaps = swaps_per_edge * n_edges
+    max_attempts = 100 * n_edges
+
+    kernel = _rust_kernel("rewire_degree_preserving_rust", backend)
+    if kernel is not None:
+        rewired, swaps, _attempts = kernel(edges, n_samples, target_swaps, max_attempts, seed)
+    else:
+        from ..engine.python import degree_preserving_rewire_python
+
+        rewired, swaps, _attempts = degree_preserving_rewire_python(
+            edges, n_samples, target_swaps, max_attempts, seed
         )
 
-    rng = np.random.default_rng(seed)
-    nx_graph = graph.as_networkx()
+    short = [i for i, done in enumerate(swaps) if done < target_swaps]
+    if short:
+        raise ValueError(
+            f"degree-preserving randomization reached only {swaps[short[0]]} of "
+            f"{target_swaps} swaps on sample {short[0]}. Graphs with too few "
+            f"swappable edges have no meaningful degree-preserving null, and "
+            f"returning the observed graph as its own null would make any test "
+            f"against it meaningless."
+        )
 
-    # Convert to undirected for null models
-    if nx_graph.is_directed():
-        nx_graph = nx_graph.to_undirected()
-
-    null_graphs = []
-
-    if method == "configuration":
-        # Configuration model: preserve degree sequence
-        degree_seq = [d for n, d in nx_graph.degree()]
-        for _ in range(n_samples):
-            # No try/except: a sample that cannot be generated is a real
-            # failure, and quietly returning fewer samples than asked for
-            # would skew whatever significance test consumes them.
-            null_g = nx.configuration_model(degree_seq, seed=rng)
-            # Remove self-loops and parallel edges
-            null_g = nx.Graph(null_g)
-            null_g.remove_edges_from(nx.selfloop_edges(null_g))
-            null_graphs.append(null_g)
-
-    elif method == "erdos_renyi":
-        # Erdos-Renyi: same number of nodes and edges
-        n = nx_graph.number_of_nodes()
-        m = nx_graph.number_of_edges()
-        p = 2 * m / (n * (n - 1)) if n > 1 else 0.0
-        for _ in range(n_samples):
-            null_g = nx.erdos_renyi_graph(n, p, seed=rng)
-            null_graphs.append(null_g)
-
-    elif method == "degree_preserving":
-        # Degree-preserving randomization (double edge swap)
-        for _ in range(n_samples):
-            null_g = nx_graph.copy()
-            m = null_g.number_of_edges()
-            if m > 0:
-                try:
-                    nx.double_edge_swap(null_g, nswap=5 * m, max_tries=100 * m, seed=rng)
-                except nx.NetworkXAlgorithmError as e:
-                    # Too few swappable edges to randomize: the "null" graph
-                    # would just be the observed one, which is not a null model.
-                    raise ValueError(
-                        f"degree-preserving randomization failed on this graph: {e}. "
-                        f"Graphs with too few swappable edges have no meaningful "
-                        f"degree-preserving null."
-                    ) from e
-            null_graphs.append(null_g)
-
-    else:
-        raise ValueError(f"Unknown null model method: {method}")
-
-    # Convert back to Graph objects
-    from .graph import Graph as GraphClass
-
-    graph_list = []
-    for null_g in null_graphs:
-        edges = list(null_g.edges())
-        if null_g.number_of_nodes() > 0:
-            n_nodes = max(max(u, v) for u, v in edges) + 1 if edges else null_g.number_of_nodes()
-        else:
-            n_nodes = 0
-        graph_list.append(GraphClass(edges=edges, n_nodes=n_nodes, directed=False, weighted=False))
-
-    return {"graphs": graph_list, "method": method, "n_samples": len(graph_list)}
+    return {
+        "graphs": _sample_graphs(graph, rewired),
+        "method": "degree_preserving",
+        "n_samples": len(rewired),
+    }
 
 
 def permutation_tests(

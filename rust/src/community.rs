@@ -421,6 +421,104 @@ pub fn louvain(
     })
 }
 
+/// Detect communities by asynchronous label propagation.
+///
+/// Every node starts in its own community and repeatedly adopts whichever
+/// label carries the most edge weight among its neighbours, updating in place
+/// so changes spread within a pass. Ties are broken by the RNG, and nodes are
+/// visited in a shuffled order, so `seed` decides the outcome on any graph
+/// with ties — which is most of them.
+///
+/// Faster than Louvain and needs no resolution parameter, but it optimizes
+/// nothing explicitly: on graphs without clear structure it can collapse
+/// everything into one community. Prefer [`louvain`] when you want a partition
+/// you can defend by its modularity.
+///
+/// Returns [`GraphError`] if an edge names a node that does not exist, if the
+/// weights do not line up with the edges, or if `max_iter` is zero.
+pub fn label_propagation(
+    n: usize,
+    edges: &[(usize, usize)],
+    weights: Option<&[f64]>,
+    seed: u64,
+    max_iter: usize,
+) -> Result<Array1<usize>, GraphError> {
+    validate_edges(n, edges)?;
+    validate_weights(edges.len(), weights, WeightRule::NonNegative)?;
+    if max_iter == 0 {
+        return Err(GraphError::InvalidParameter {
+            name: "max_iter",
+            requirement: "must be at least 1",
+        });
+    }
+    if n == 0 {
+        return Ok(Array1::from_vec(Vec::new()));
+    }
+
+    let graph = WeightedGraph::from_edges(n, edges, weights);
+    let mut labels: Vec<usize> = (0..n).collect();
+    let mut rng = SplitMix64::new(seed);
+
+    let mut order: Vec<usize> = (0..n).collect();
+    let mut weight_to: Vec<f64> = vec![0.0; n];
+    let mut touched: Vec<usize> = Vec::new();
+
+    for _ in 0..max_iter {
+        rng.shuffle(&mut order);
+        let mut changed = false;
+
+        for &node in order.iter() {
+            if graph.adj[node].is_empty() {
+                continue;
+            }
+
+            for &label in touched.iter() {
+                weight_to[label] = 0.0;
+            }
+            touched.clear();
+
+            for &(neighbour, weight) in graph.adj[node].iter() {
+                let label = labels[neighbour];
+                if weight_to[label] == 0.0 {
+                    touched.push(label);
+                }
+                weight_to[label] += weight;
+            }
+
+            // Pick the heaviest label, choosing uniformly among ties so the
+            // node order alone does not decide it.
+            let mut best = labels[node];
+            let mut best_weight = f64::NEG_INFINITY;
+            let mut ties = 0u64;
+            for &label in touched.iter() {
+                let weight = weight_to[label];
+                if weight > best_weight {
+                    best_weight = weight;
+                    best = label;
+                    ties = 1;
+                } else if weight == best_weight {
+                    ties += 1;
+                    if rng.below(ties) == 0 {
+                        best = label;
+                    }
+                }
+            }
+
+            if best != labels[node] {
+                labels[node] = best;
+                changed = true;
+            }
+        }
+
+        if !changed {
+            break;
+        }
+    }
+
+    renumber(&mut labels, n);
+    Ok(Array1::from_vec(labels))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -634,5 +732,46 @@ mod tests {
         assert!(louvain(3, &edges, Some(&[1.0]), 1.0, None, 10).is_err());
         assert!(louvain(3, &edges, Some(&[1.0, -1.0]), 1.0, None, 10).is_err());
         assert!(modularity(3, &edges, None, &[0, 0], 1.0).is_err());
+    }
+
+    #[test]
+    fn label_propagation_finds_two_triangles() {
+        let (n, edges) = two_triangles();
+        let labels = label_propagation(n, &edges, None, 7, 100).unwrap();
+
+        assert_eq!(labels[0], labels[1]);
+        assert_eq!(labels[1], labels[2]);
+        assert_eq!(labels[3], labels[4]);
+        assert_eq!(labels[4], labels[5]);
+    }
+
+    #[test]
+    fn label_propagation_labels_are_consecutive() {
+        let (n, edges) = ring_of_cliques(4, 6);
+        let labels = label_propagation(n, &edges, None, 3, 100).unwrap();
+
+        let distinct: std::collections::HashSet<_> = labels.iter().copied().collect();
+        assert_eq!(distinct.len(), labels.iter().copied().max().unwrap() + 1);
+    }
+
+    #[test]
+    fn label_propagation_is_reproducible() {
+        let (n, edges) = ring_of_cliques(4, 5);
+        let first = label_propagation(n, &edges, None, 42, 100).unwrap();
+        let second = label_propagation(n, &edges, None, 42, 100).unwrap();
+        assert_eq!(first.to_vec(), second.to_vec());
+    }
+
+    #[test]
+    fn label_propagation_leaves_isolated_nodes_alone() {
+        let labels = label_propagation(3, &[(0, 1)], None, 1, 100).unwrap();
+        assert_ne!(labels[2], labels[0], "an isolated node joins nobody");
+    }
+
+    #[test]
+    fn label_propagation_rejects_bad_input() {
+        assert!(label_propagation(3, &[(0, 9)], None, 1, 100).is_err());
+        assert!(label_propagation(3, &[(0, 1)], None, 1, 0).is_err());
+        assert!(label_propagation(3, &[(0, 1)], Some(&[-1.0]), 1, 10).is_err());
     }
 }
