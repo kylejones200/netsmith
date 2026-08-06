@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `backend` argument on `netsmith.core.community.louvain_hooks` and
   `modularity` — `"auto"` (Rust when built, else Python), `"rust"`, `"python"`,
   or `"networkx"` for the previous NetworkX-backed behaviour.
+- `click`, `pandas` and `pyarrow` in the dev dependencies: the CLI needs click to
+  import at all and writes its Parquet output through pandas, so without them
+  `tests/unit/test_cli.py` could not even be collected.
 
 ### Changed
 - `louvain_hooks` and `modularity` now default to the built-in kernels instead of
@@ -32,6 +35,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the same definition and match NetworkX to floating-point tolerance.
 
 ### Fixed
+- `pagerank` returned scores that did not sum to 1. It followed only `u -> v`
+  even on undirected graphs and discarded the rank of dangling nodes, so a
+  6-node undirected graph could total 0.38 instead of 1. It now walks
+  undirected edges in both directions, redistributes dangling mass, honours
+  edge weights, warns instead of silently returning an unconverged vector, and
+  matches `networkx.pagerank` to 1e-8 on directed, undirected and weighted
+  graphs.
+- `triangles_per_node` (Rust) reported twice the real count: each triangle was
+  counted once per incident edge. A single triangle now gives every member 1.
+- Clustering coefficients counted self-loops as neighbours, inflating degree and
+  inventing triangles. Self-loops are now ignored, matching NetworkX.
+- `clustering` disagreed between backends on directed input — the Python
+  backend followed only `u -> v` while the Rust kernel symmetrized. Both now
+  treat the graph as undirected, which is documented on the function.
+- `average_clustering` (Rust) averaged only over nodes with at least two
+  neighbours, so it did not equal the mean of `local_clustering`. It now
+  averages over all nodes, as NetworkX does.
+- CI installed a hand-maintained package list that omitted the CLI's
+  dependencies. The workflows now install `.[dev,networkx,scipy]`, so the
+  declared dependencies are the single source of truth.
+- `load_edges` could not read a CSV or Parquet file on an install without
+  polars: the pandas fallback referenced an unbound `pl`, so every path raised
+  `UnboundLocalError`. Reading now works with polars or pandas, and raises a
+  clear `ImportError` naming both if neither is installed.
+- `netsmith compute-communities` called `load_edges` without column names, so it
+  failed on every file input with "u_col and v_col must be specified". It now
+  takes `--u-col` / `--v-col` / `--w-col` like the other commands.
 - `netsmith.engine.python.communities_python` returned an all-zeros placeholder,
   so `compute_communities` / `netsmith.api.communities` silently reported "every
   node in one community" whenever the Rust extension was missing. It now runs
