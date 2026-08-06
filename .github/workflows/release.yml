@@ -6,6 +6,8 @@ on:
       - 'v*'  # Trigger on version tags (e.g., v0.7.0)
   release:
     types: [published]  # Also trigger on GitHub releases
+  workflow_dispatch:    # Manual trigger, for when a tag push lands during an
+                        # Actions outage and the automatic run never fires
 
 jobs:
   build-wheels:
