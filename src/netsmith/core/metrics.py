@@ -173,28 +173,36 @@ def assortativity(graph: Graph, attribute: Optional[NDArray] = None) -> float:
     to other high-degree nodes. The coefficient is the Pearson correlation
     of attribute values at edge endpoints.
     """
-    if attribute is None:
-        attribute = degree(graph)
-
-    src, dst, weight = graph.edges_coo()
-
+    src, dst, _weight = graph.edges_coo()
     if len(src) == 0:
         return 0.0
 
-    # Compute assortativity
-    if graph.directed:
-        # For directed: use out-degree for source, in-degree for target
-        src_attr = attribute[src]
-        dst_attr = attribute[dst]
+    if attribute is None and graph.directed:
+        # Degree assortativity of a directed graph correlates the source's
+        # out-degree with the target's in-degree, which is what NetworkX does.
+        source_values = graph.out_degree_sequence()[src]
+        target_values = graph.in_degree_sequence()[dst]
     else:
-        src_attr = attribute[src]
-        dst_attr = attribute[dst]
+        values = degree(graph) if attribute is None else np.asarray(attribute)
+        if graph.directed:
+            source_values, target_values = values[src], values[dst]
+        else:
+            # An undirected edge has no source or target: (u, v) and (v, u) are
+            # the same edge. Correlating only the stored orientation makes the
+            # answer depend on which way round each edge happened to be
+            # written down, so both orientations are included.
+            source_values = np.concatenate([values[src], values[dst]])
+            target_values = np.concatenate([values[dst], values[src]])
 
-    # Pearson correlation of attributes at edge endpoints
-    if len(src_attr) < 2:
+    if len(source_values) < 2:
         return 0.0
 
-    return float(np.corrcoef(src_attr, dst_attr)[0, 1])
+    # A constant attribute has no variance, so the correlation is undefined
+    # rather than zero.
+    if np.ptp(source_values) == 0 or np.ptp(target_values) == 0:
+        return float("nan")
+
+    return float(np.corrcoef(source_values, target_values)[0, 1])
 
 
 def clustering(graph: Graph, node: Optional[int] = None) -> Union[NDArray, float]:

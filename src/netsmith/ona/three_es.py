@@ -83,7 +83,15 @@ def energy_score(
     """
     n = len(member_ids)
     if n == 0 or not comms:
-        return 0.0, {"total_comms": 0, "total_duration_min": 0.0, "face_to_face_ratio": 0.0}
+        # Same keys as the populated path: a caller reading detail["freq_normalized"]
+        # should not hit a KeyError just because the team had a quiet month.
+        return 0.0, {
+            "total_comms": 0,
+            "total_duration_min": 0.0,
+            "face_to_face_ratio": 0.0,
+            "freq_normalized": 0.0,
+            "duration_normalized": 0.0,
+        }
 
     durations = np.array([c.duration_minutes for c in comms], dtype=float)
     types = [c.comm_type for c in comms]
@@ -170,7 +178,12 @@ def exploration_score(
     n = len(member_set)
     total = len(comms)
     if n == 0 or total == 0:
-        return 0.0, {"cross_team_count": 0, "exploration_ratio": 0.0, "explorers": 0}
+        return 0.0, {
+            "cross_team_count": 0,
+            "exploration_ratio": 0.0,
+            "explorers": 0,
+            "explorer_rate": 0.0,
+        }
 
     cross = [c for c in comms if c.is_cross_team]
     cross_count = len(cross)

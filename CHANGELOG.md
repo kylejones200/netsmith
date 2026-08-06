@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `assortativity` correlated each edge only in the orientation it happened to
+  be stored in, so the same undirected graph gave different answers depending
+  on whether an edge was written `(u, v)` or `(v, u)` — on the karate club,
+  -0.4770 or -0.4748 for one graph, neither matching NetworkX's -0.4756. Both
+  orientations are now included, which matches
+  `networkx.degree_assortativity_coefficient` exactly. Directed graphs now
+  correlate the source's out-degree with the target's in-degree, which the
+  comment claimed but the code never did — the two branches were identical.
+  A constant attribute now returns NaN rather than whatever `np.corrcoef`
+  produces from a zero-variance input.
+- `energy_score` and `exploration_score` returned fewer keys in their detail
+  dict on empty input, so `detail["freq_normalized"]` raised `KeyError` for a
+  team with no traffic. This was fixed for `engagement_score` in 0.2.0 and
+  missed in the other two.
+
 ### Added
 - `netsmith.core.mahalanobis` — Mahalanobis distance on node feature vectors,
   either each sample's distance from the mean (the usual outlier score) or the
