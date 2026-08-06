@@ -9,18 +9,24 @@ from ..contracts import EdgeList
 
 
 def clustering_python(edges: EdgeList) -> NDArray[np.float64]:
-    """Compute local clustering coefficients (Python backend)."""
+    """
+    Compute local clustering coefficients (Python backend).
+
+    The graph is treated as undirected — a directed edge list is symmetrized —
+    which is what the Rust kernel does, so both backends agree. Self-loops are
+    ignored, as they are in the triangle count.
+    """
     n = edges.n_nodes
     clustering = np.zeros(n, dtype=np.float64)
 
-    # Build adjacency list
+    # Build adjacency list. Always undirected: the Rust kernel symmetrizes too,
+    # and directed clustering needs a different definition entirely.
     adj = [set() for _ in range(n)]
     for i in range(len(edges.u)):
         u, v = int(edges.u[i]), int(edges.v[i])
-        if u < n and v < n:
+        if u < n and v < n and u != v:
             adj[u].add(v)
-            if not edges.directed:
-                adj[v].add(u)
+            adj[v].add(u)
 
     # Compute clustering for each node
     for u in range(n):

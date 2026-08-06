@@ -13,6 +13,36 @@ if TYPE_CHECKING:
     import polars  # noqa: F401
 
 
+def _read_table(path: str, fmt: str):
+    """
+    Read a CSV or Parquet file with whichever DataFrame library is installed.
+
+    Prefers polars, falls back to pandas. Both expose ``df[col].to_numpy()``,
+    which is all the caller needs.
+
+    Raises
+    ------
+    ImportError
+        If neither polars nor pandas is installed
+    """
+    try:
+        import polars as pl
+
+        return pl.read_parquet(path) if fmt == "parquet" else pl.read_csv(path)
+    except ImportError:
+        pass
+
+    try:
+        import pandas as pd
+
+        return pd.read_parquet(path) if fmt == "parquet" else pd.read_csv(path)
+    except ImportError:
+        raise ImportError(
+            f"reading {fmt} files requires polars or pandas. "
+            f"Install with: pip install netsmith[polars] or pip install netsmith[pandas]"
+        )
+
+
 def load_edges(
     source: Union[str, np.ndarray, "pandas.DataFrame", "polars.DataFrame"],
     u_col: Optional[str] = None,
@@ -56,25 +86,9 @@ def load_edges(
     # Handle string (file path)
     if isinstance(source, str):
         if source.endswith(".parquet"):
-            try:
-                import polars as pl
-
-                df = pl.read_parquet(source)
-            except ImportError:
-                import pandas as pd
-
-                df = pd.read_parquet(source)
-                df = pl.from_pandas(df)
+            df = _read_table(source, "parquet")
         elif source.endswith(".csv"):
-            try:
-                import polars as pl
-
-                df = pl.read_csv(source)
-            except ImportError:
-                import pandas as pd
-
-                df = pd.read_csv(source)
-                df = pl.from_pandas(df)
+            df = _read_table(source, "csv")
         else:
             raise ValueError(f"Unsupported file format: {source}")
 

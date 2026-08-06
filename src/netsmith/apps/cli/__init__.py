@@ -56,11 +56,14 @@ def compute_pagerank(input, out, u_col, v_col, alpha, backend):
 @main.command()
 @click.option("--input", required=True, help="Input edge list file")
 @click.option("--out", required=True, help="Output file")
+@click.option("--u-col", default="u", help="Source node column")
+@click.option("--v-col", default="v", help="Destination node column")
+@click.option("--w-col", default=None, help="Edge weight column")
 @click.option("--method", default="louvain", help="Community detection method")
 @click.option("--backend", default="auto", type=click.Choice(["auto", "python", "rust"]))
-def compute_communities(input, out, method, backend):
+def compute_communities(input, out, u_col, v_col, w_col, method, backend):
     """Compute community assignments."""
-    edges = load_edges(input)
+    edges = load_edges(input, u_col=u_col, v_col=v_col, w_col=w_col)
     comms = communities(edges, method=method, backend=backend)
 
     import pandas as pd
