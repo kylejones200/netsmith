@@ -33,6 +33,7 @@ NetSmith follows a four-layer architecture:
 Pure math, no I/O, no global state. Located in `src/netsmith/core/`:
 - `graph.py`: Core graph types (`Graph`, `GraphView`)
 - `metrics.py`: Degree, centrality (degree, betweenness), assortativity, clustering, k-core, components
+- `distance.py`: Mahalanobis distance on node feature vectors
 - `paths.py`: Shortest paths, reachability, walk metrics
 - `community.py`: Modularity, Louvain and label propagation (all built-in kernels)
 - `nulls.py`: Null models and permutation tests

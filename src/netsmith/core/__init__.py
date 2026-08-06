@@ -5,6 +5,7 @@ This layer contains the fundamental graph types, metrics, and algorithms.
 """
 
 from .community import label_propagation_hooks, louvain_hooks, modularity
+from .distance import mahalanobis
 from .graph import Graph, GraphView
 from .metrics import (
     assortativity,
@@ -22,6 +23,7 @@ from .stats import bootstrap, confidence_intervals, distributions
 __all__ = [
     "Graph",
     "GraphView",
+    "mahalanobis",
     "degree",
     "strength",
     "centrality",
