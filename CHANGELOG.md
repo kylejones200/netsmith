@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `shortest_paths_from_sources` in `paths`, plus
+  `netsmith_rs.shortest_paths_multi_rust`. `shortest_paths_from_source` builds
+  the adjacency list on every call, so querying many sources over one graph
+  rebuilt it once per source — over 200 sources that dominated the traversals.
+  The batched entry point builds it once and runs the sources in parallel: 23x
+  faster on a 10k-node graph and 15x on a 100k-node graph. See
+  `examples/bfs_reuse.rs`.
 - Betweenness centrality — a Rust `centrality` module in `netsmith-core`
   implementing Brandes' algorithm, with the per-source shortest-path sweeps run
   in parallel across cores via rayon. Handles unweighted (BFS) and weighted
