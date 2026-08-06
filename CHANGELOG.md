@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Note on history.** NetSmith was rearchitected out of the `ts2net` codebase on
+> 2026-01-12, dropping the time-series conversion features. Versions 0.4.0–0.6.0
+> that previously appeared in this file belonged to `ts2net` and are documented in
+> that project, not here. NetSmith's own history starts at 0.1.1.
+
 ## [Unreleased]
 
 ### Added
@@ -33,85 +38,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Louvain, and an unsupported `method` raises `ValueError` instead of returning
   a fake partition.
 
-## [0.6.0] - 2024-12-20
-
-### Added
-- BSTS (Bayesian Structural Time Series) decomposition and residual topology analysis (historical feature from previous project)
-  - BSTS module with `decompose()`, `features()`, and `BSTSSpec`
-  - Structural decomposition (level, trend, seasonal components)
-  - Residual network analysis (HVG, NVG, transition on residuals)
-  - Windowed analysis support for long series
-  - YAML pipeline integration for BSTS
-- Comprehensive test suite for correctness and invariants
-  - Hard correctness tests comparing fast vs naive O(n²) implementations
-  - Property-based tests for pathological ties (repeated values)
-  - Cross-platform determinism tests
-  - End-to-end pipeline tests with known fixtures
-  - Performance regression tests
-  - Data hygiene tests
-- PyPI publishing workflow improvements
-  - Triggers on version tags in addition to GitHub releases
-  - Setup documentation (`PYPI_SETUP.md`)
+## [0.2.2] - 2026-06-16
 
 ### Changed
-- Explicit tie-breaking rules documented for HVG and NVG
-- Improved test coverage and organization
+- Version bump to publish the 0.2.1 packaging fix to PyPI.
+- Applied `black` formatting across 5 files.
+
+## [0.2.1] - 2026-06-16
 
 ### Fixed
-- Fixed indentation error in recurrence.py
-- Fixed NVG test unpacking (4-value return)
-- Fixed pipeline determinism test (sort results for comparison)
+- Wheels now contain the `netsmith` Python package. `python-source = "src"` alone
+  was not enough for Maturin to pick up the package tree; added
+  `python-packages = ["netsmith"]` under `[tool.maturin]`. Before this fix
+  `import netsmith.ona` failed on a PyPI install even though the module was present
+  in the repository.
 
-## [0.5.0] - 2024-12-19
+## [0.2.0] - 2026-04-21
 
 ### Added
-- Real-world example using FRED economic data (`examples/example_fred_data.py`)
-  - Fetches GDP, Unemployment Rate, and CPI from FRED
-  - Demonstrates proximity networks from sliding windows
-  - Network visualizations with signalplot
-- Pre-push git hook for automated testing before pushing to main
-- Examples documentation page (`docs/examples.rst`)
-- `examples/images/` directory for generated visualizations
-- Pre-push testing setup documentation
-
-### Changed
-- Restricted Python version support to 3.12+ (removed 3.9-3.11)
-- Updated CI workflows to test only Python 3.12 and 3.13
-- Simplified test suite (removed parity tests, reduced unit test verbosity)
-- Updated documentation to use new API (`build()` instead of `fit_transform()`)
-- Updated ReadTheDocs configuration to use Python 3.12
-- Improved network visualizations with better styling and statistics
+- `netsmith.ona` — Organizational Network Analysis:
+  - `ona/three_es.py`: Energy / Engagement / Exploration scoring in pure NumPy, with
+    no ORM or I/O coupling. Provides the `Communication` and `ThreeEsResult`
+    dataclasses, `score_team()`, and `gini_coefficient()`. Implements the weights
+    from Cross, Borgatti & Parker (2002).
+  - `ona/silo.py`: union-find silo detection per topic cluster. `detect_silos()`
+    returns `SiloResult` records sorted by severity, flagging clusters where two or
+    more disconnected actor groups discuss the same topic (Burt 2004).
+  - 30 unit tests.
+- `src/netsmith_rs/__init__.py` stub and `python-source = "src"` so Maturin includes
+  the Python source tree.
+- `pythonpath = src` in `pytest.ini` for src-layout compatibility with the Maturin build.
 
 ### Fixed
-- Fixed RecurrenceNetwork and TransitionNetwork parameter mapping in API wrapper
-- Fixed floating-point precision issues in distance tests
-- Fixed approximate k-NN tests to handle feature matrices correctly
-- Fixed MIC tests to properly check for minepy availability
-- Fixed z-score normalization test expectations
+- Python source packaging: wheels previously shipped only the compiled Rust
+  extension, silently omitting everything under `src/netsmith/`.
+- `engagement_score()` now returns `two_way_rate` on its empty-input early return, so
+  the result shape no longer depends on whether any communications were supplied.
 
-### Removed
-- Parity testing framework (R dependency removed)
-- Redundant test files (`tests_visibility.py`, `tests_recurrance.py`, etc.)
-- Duplicate `wheels.yml` workflow (using trusted publishing instead)
-
-## [0.4.0] - 2024-12-19
+## [0.1.1] - 2026-01-12
 
 ### Added
-- Initial release with core functionality
-- Time series to network conversion using various methods
-- Visibility graph algorithms (HVG, NVG)
-- Recurrence network support
-- Transition networks
-- Multivariate time series support
-- Rust bindings for performance-critical operations
-- CLI interface
-- Comprehensive test suite
+- Initial NetSmith release: a four-layer network analysis library with Rust
+  acceleration, rearchitected from `ts2net` with the time-series dependencies removed.
+  - **Core** (`src/netsmith/core/`) — pure math, no I/O, no global state:
+    `graph.py`, `metrics.py`, `paths.py`, `community.py`, `nulls.py`, `stats.py`.
+  - **Engine** (`src/netsmith/engine/`) — `python/` reference implementations,
+    `rust/` accelerated kernels, `dispatch.py` for backend selection, and
+    `contracts.py` defining the canonical `EdgeList` / `GraphData` representations.
+  - **API** (`src/netsmith/api/`) — stable public surface: `load.py`, `graph.py`,
+    `compute.py`, `validate.py`.
+  - **Apps** (`src/netsmith/apps/`) — `cli/`, `reports/`, `datasets/`.
+- Rust workspace: `netsmith-core` (degree, metrics, paths) with `netsmith-py` PyO3
+  bindings exposed to Python as `netsmith_rs`.
+- `netsmith` CLI entry point.
+- Example notebooks: quick start, temporal CNN, unified graphs.
 
-### Changed
-- Project structure optimized for distribution
-- Documentation setup with Sphinx
+### Fixed
+- `reachability()` now handles unreachable nodes correctly.
+- Removed Core → Engine imports that violated the layer boundary.
 
-[Unreleased]: https://github.com/kylejones200/netsmith/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/kylejones200/netsmith/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/kylejones200/netsmith/releases/tag/v0.4.0
-
+[Unreleased]: https://github.com/kylejones200/netsmith/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/kylejones200/netsmith/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/kylejones200/netsmith/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/kylejones200/netsmith/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/kylejones200/netsmith/releases/tag/v0.1.1
