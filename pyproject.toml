@@ -42,6 +42,9 @@ dev = [
     "flake8>=6.0",
     "mypy>=1.0",
     "isort>=5.12",
+    "click>=8.0",       # Required by the netsmith CLI and its tests
+    "pandas>=1.5,<3.0.0",  # CLI writes Parquet output through pandas
+    "pyarrow>=12.0",       # Parquet engine for the CLI round-trip tests
 ]
 
 [project.scripts]
@@ -101,4 +104,7 @@ dev = [
     "maturin>=1.13.1",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
+    "click>=8.0",
+    "pandas>=1.5,<3.0.0",
+    "pyarrow>=12.0",
 ]
