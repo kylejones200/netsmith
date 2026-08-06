@@ -37,6 +37,9 @@ jobs:
           # Create virtualenv (maturin develop requires a venv)
           python -m venv .venv
           source .venv/bin/activate
+          # maturin shells out to this pip for [dependency-groups]; --group
+          # needs pip 25.1+, and the venv ships whatever the runner had.
+          python -m pip install -U pip
           # Install the package in editable mode using maturin develop
           # This installs the Rust extension
           maturin develop -m rust/Cargo.toml
