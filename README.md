@@ -107,6 +107,7 @@ pip install netsmith
 **With optional dependencies:**
 ```bash
 pip install netsmith[scipy]      # For sparse matrices (adjacency_matrix format='sparse'/'coo')
+pip install netsmith[cli]        # For the `netsmith` command-line tool
 pip install netsmith[networkx]   # Interop only: Graph.as_networkx()
 pip install netsmith[pandas]     # For pandas data loading
 pip install netsmith[polars]     # For polars data loading

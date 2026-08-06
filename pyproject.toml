@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "netsmith"
-version = "0.2.2"
+version = "0.3.0"
 description = "Fast network analysis library with Rust acceleration"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -35,6 +35,10 @@ scipy = ["scipy>=1.9,<2.0.0"]  # For sparse matrices and advanced stats
 pandas = ["pandas>=1.5,<3.0.0"]
 polars = ["polars>=0.20,<1.0.0"]
 networkx = ["networkx>=3.0,<4.0.0"]  # Interop only: Graph.as_networkx(). No algorithm needs it.
+# The `netsmith` command needs click to run and pandas/pyarrow to write its
+# Parquet output. Declared here rather than as a hard dependency so importing
+# the library stays lean.
+cli = ["click>=8.0", "pandas>=1.5,<3.0.0", "pyarrow>=12.0"]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",

@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-06
+
+### Fixed
+- `pip install netsmith` advertised a `netsmith` command that could not run:
+  `[project.scripts]` declared the entry point but click was never a
+  dependency. There is now a `cli` extra (click, pandas, pyarrow), and the
+  command explains itself instead of raising `ModuleNotFoundError` when it is
+  missing.
+
 ### Removed
 - NetworkX is no longer needed to compute anything. It backed k-core, label
   propagation, the configuration and Erdos-Renyi null models, and a redundant
@@ -229,7 +238,8 @@ These all returned a plausible number instead of reporting a problem.
 - `reachability()` now handles unreachable nodes correctly.
 - Removed Core → Engine imports that violated the layer boundary.
 
-[Unreleased]: https://github.com/kylejones200/netsmith/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/kylejones200/netsmith/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kylejones200/netsmith/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/kylejones200/netsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/kylejones200/netsmith/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/kylejones200/netsmith/compare/v0.1.1...v0.2.0

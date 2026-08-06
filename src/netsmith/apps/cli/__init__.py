@@ -2,7 +2,13 @@
 CLI implementation: netsmith as a command-line tool.
 """
 
-import click
+try:
+    import click
+except ImportError as exc:  # pragma: no cover - exercised by a clean install
+    raise ImportError(
+        "The netsmith command needs its optional dependencies. "
+        "Install them with: pip install 'netsmith[cli]'"
+    ) from exc
 
 from ...api.compute import communities, degree, pagerank
 from ...api.load import load_edges

@@ -30,7 +30,7 @@ jobs:
           # Install the Python package plus the declared dev dependencies
           # (pytest, linters, click/pandas/pyarrow for the CLI tests) and the
           # optional extras the test suite exercises.
-          pip install -e ".[dev,networkx,scipy]"
+          pip install -e ".[dev,cli,networkx,scipy]"
           pip install PyYAML
       - name: Lint with black
         run: |
