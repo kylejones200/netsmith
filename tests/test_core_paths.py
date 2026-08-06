@@ -4,6 +4,7 @@ Tests for core paths functions.
 
 import numpy as np
 
+from netsmith.api import UNREACHABLE
 from netsmith.core.graph import Graph
 from netsmith.core.paths import reachability, shortest_paths
 
@@ -47,8 +48,10 @@ class TestShortestPaths:
         assert dist[0] == 0
         assert dist[1] == 1
         # Nodes 2 and 3 should have large distance (unreachable)
-        assert dist[2] > 1000 or dist[2] == np.iinfo(np.int64).max
-        assert dist[3] > 1000 or dist[3] == np.iinfo(np.int64).max
+        # Both backends now mark unreachable with the same sentinel, so this
+        # can be exact rather than "some large number".
+        assert dist[2] == UNREACHABLE
+        assert dist[3] == UNREACHABLE
 
     def test_shortest_paths_directed(self):
         """Test shortest paths for directed graph."""
@@ -63,7 +66,7 @@ class TestShortestPaths:
 
         # Reverse direction should not work
         dist_rev = shortest_paths(graph, source=2)
-        assert dist_rev[0] > 1000 or dist_rev[0] == np.iinfo(np.int64).max
+        assert dist_rev[0] == UNREACHABLE
 
 
 class TestReachability:

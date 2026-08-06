@@ -11,7 +11,11 @@ from .communities import communities_python, louvain_python, modularity_python
 from .components import components_python
 from .degree import degree_python
 from .pagerank import pagerank_python
-from .paths import mean_shortest_path_python, shortest_paths_python
+from .paths import (
+    mean_shortest_path_python,
+    shortest_paths_multi_python,
+    shortest_paths_python,
+)
 
 __all__ = [
     "degree_python",
@@ -23,5 +27,6 @@ __all__ = [
     "clustering_python",
     "components_python",
     "shortest_paths_python",
+    "shortest_paths_multi_python",
     "mean_shortest_path_python",
 ]

@@ -244,6 +244,40 @@ def compute_shortest_paths(
     return shortest_paths_python(edges, source, target, weight)
 
 
+def compute_shortest_paths_multi(
+    edges: EdgeList, sources, backend: Backend = "auto"
+) -> NDArray[np.int64]:
+    """
+    Compute hop distances from several sources at once.
+
+    Builds the adjacency list once instead of per source, which is what makes
+    this cheaper than calling `compute_shortest_paths` in a loop. The Rust
+    backend also sweeps the sources in parallel.
+
+    Parameters
+    ----------
+    edges : EdgeList
+        Edge list
+    sources : sequence of int
+        Node indices to search from
+    backend : str, default "auto"
+        Backend: "auto", "python", or "rust"
+
+    Returns
+    -------
+    distances : array (len(sources), n_nodes)
+        Row i holds the hop distances from sources[i]; unreachable nodes hold
+        the maximum int64.
+    """
+    kernel = _rust_kernel("shortest_paths_multi_rust", backend)
+    if kernel is not None:
+        return kernel(edges, sources)
+
+    from .python import shortest_paths_multi_python
+
+    return shortest_paths_multi_python(edges, sources)
+
+
 def compute_betweenness(
     edges: EdgeList,
     normalized: bool = True,

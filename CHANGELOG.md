@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-source shortest paths. `shortest_paths_from_source` rebuilt the
+  adjacency list on every call, and that setup dominates when querying many
+  sources over one fixed graph. `shortest_paths_from_adjacency` takes a
+  prebuilt adjacency, and `shortest_paths_from_sources` builds it once and
+  sweeps the sources in parallel. Reachable from Python as
+  `netsmith.api.shortest_paths_multi`, `compute_shortest_paths_multi`, and
+  `netsmith_rs.shortest_paths_multi_rust`, with a pure-Python fallback.
+  Measured over 200 sources (`cargo run --release --example bfs_reuse`):
+  10k nodes / 100k edges, 0.314s per-source vs 0.029s reusing the adjacency vs
+  0.014s multi-source (11x, 22x); 100k nodes / 1M edges, 4.257s vs 1.243s vs
+  0.354s (3x, 12x). `mean_shortest_path` now runs its sweeps in parallel too.
+  Originally proposed in PR #1.
 - Betweenness centrality — a Rust `centrality` module in `netsmith-core`
   implementing Brandes' algorithm, with the per-source shortest-path sweeps run
   in parallel across cores via rayon. Handles unweighted (BFS) and weighted
@@ -61,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — silent failures
 These all returned a plausible number instead of reporting a problem.
+
+- The two backends disagreed on what "unreachable" means in a distance array:
+  the Rust kernel returned `usize::MAX` as uint64, the Python one `int64` max,
+  so `distances == UNREACHABLE` matched on one backend and missed on the other.
+  Both now return int64 carrying the exported `netsmith.api.UNREACHABLE`. The
+  existing tests had been written as `dist > 1000 or dist == int64 max`, which
+  accommodated the bug rather than catching it.
 
 - Kernels no longer skip edges that name a node outside the graph. Every Rust
   kernel returns a typed `GraphError` naming the offending edge, and the Python

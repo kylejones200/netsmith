@@ -15,6 +15,11 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
+#: Distance returned for a node no path reaches. Both backends use this exact
+#: value, so `distances == UNREACHABLE` is a reliable test. (The Rust kernel
+#: works in usize::MAX internally; the wrapper maps it onto this.)
+UNREACHABLE: int = int(np.iinfo(np.int64).max)
+
 
 @dataclass
 class EdgeList:
