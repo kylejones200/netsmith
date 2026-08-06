@@ -183,6 +183,109 @@ pub fn degree_preserving_rewire_samples(
         .collect()
 }
 
+/// Sample a simple graph with the given degree sequence.
+///
+/// The configuration model lays out `degree[i]` stubs for node `i`, pairs them
+/// at random, and reads off the edges. Pairings that would make a self-loop or
+/// repeat an edge are discarded, so the result is simple — which means the
+/// realized degrees can fall slightly short of the requested ones. `shortfall`
+/// reports by how much rather than letting the caller assume an exact match.
+///
+/// Returns [`GraphError::InvalidParameter`] if the degree sum is odd, since
+/// there is then no graph with that degree sequence.
+pub fn configuration_model(
+    degrees: &[usize],
+    seed: u64,
+) -> Result<ConfigurationResult, GraphError> {
+    let total: usize = degrees.iter().sum();
+    if !total.is_multiple_of(2) {
+        return Err(GraphError::InvalidParameter {
+            name: "degrees",
+            requirement: "must sum to an even number; no graph has an odd degree sum",
+        });
+    }
+
+    let mut stubs: Vec<usize> = degrees
+        .iter()
+        .enumerate()
+        .flat_map(|(node, &d)| std::iter::repeat_n(node, d))
+        .collect();
+
+    let mut rng = SplitMix64::new(seed);
+    rng.shuffle(&mut stubs);
+
+    let mut present: HashSet<(usize, usize)> = HashSet::with_capacity(total / 2);
+    let mut edges = Vec::with_capacity(total / 2);
+    let mut discarded = 0usize;
+
+    for pair in stubs.chunks_exact(2) {
+        let (u, v) = (pair[0], pair[1]);
+        if u == v {
+            discarded += 1;
+            continue;
+        }
+        if !present.insert(canonical(u, v)) {
+            discarded += 1;
+            continue;
+        }
+        edges.push(canonical(u, v));
+    }
+
+    Ok(ConfigurationResult {
+        edges,
+        discarded_pairings: discarded,
+    })
+}
+
+/// One configuration-model draw, with what simplifying it cost.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigurationResult {
+    /// The sampled edge list, simple and undirected.
+    pub edges: Vec<(usize, usize)>,
+    /// Stub pairings dropped because they were self-loops or repeats. Each one
+    /// means two nodes ended a degree short of the sequence asked for.
+    pub discarded_pairings: usize,
+}
+
+/// Sample a uniformly random simple graph with `n` nodes and `m` edges.
+///
+/// This is G(n, m): the same edge count as the observed graph, wired without
+/// regard to degree. Sampling is by rejection, which stays efficient as long
+/// as `m` is well below the complete graph.
+///
+/// Returns [`GraphError::InvalidParameter`] if `m` exceeds the number of
+/// distinct node pairs.
+pub fn erdos_renyi(n: usize, m: usize, seed: u64) -> Result<Vec<(usize, usize)>, GraphError> {
+    let capacity = n.saturating_mul(n.saturating_sub(1)) / 2;
+    if m > capacity {
+        return Err(GraphError::InvalidParameter {
+            name: "m",
+            requirement: "must not exceed the number of distinct node pairs",
+        });
+    }
+    if m == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut rng = SplitMix64::new(seed);
+    let mut present: HashSet<(usize, usize)> = HashSet::with_capacity(m);
+    let mut edges = Vec::with_capacity(m);
+
+    while edges.len() < m {
+        let u = rng.below(n as u64) as usize;
+        let v = rng.below(n as u64) as usize;
+        if u == v {
+            continue;
+        }
+        let edge = canonical(u, v);
+        if present.insert(edge) {
+            edges.push(edge);
+        }
+    }
+
+    Ok(edges)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -312,5 +415,82 @@ mod tests {
         let result = degree_preserving_rewire(2, &[(0, 1)], 100, 1_000, 1).unwrap();
         assert_eq!(result.swaps, 0);
         assert_eq!(result.attempts, 0, "one edge has nothing to swap against");
+    }
+
+    #[test]
+    fn configuration_model_approximates_the_degree_sequence() {
+        let degrees = vec![3, 3, 3, 3, 3, 3, 3, 3];
+        let result = configuration_model(&degrees, 5).unwrap();
+
+        let realized = degree_sequence(degrees.len(), &result.edges, false).unwrap();
+        // Simplifying can only lose degree, never add it.
+        assert!(realized
+            .iter()
+            .zip(&degrees)
+            .all(|(&got, &want)| got <= want));
+        let lost: usize = degrees.iter().sum::<usize>() - realized.sum();
+        assert_eq!(
+            lost,
+            2 * result.discarded_pairings,
+            "the shortfall is reported"
+        );
+    }
+
+    #[test]
+    fn configuration_model_produces_a_simple_graph() {
+        let degrees = vec![4; 20];
+        let result = configuration_model(&degrees, 9).unwrap();
+
+        let unique: HashSet<_> = result.edges.iter().copied().collect();
+        assert_eq!(unique.len(), result.edges.len());
+        assert!(result.edges.iter().all(|&(u, v)| u != v));
+    }
+
+    #[test]
+    fn configuration_model_rejects_an_odd_degree_sum() {
+        assert!(configuration_model(&[1, 1, 1], 1).is_err());
+    }
+
+    #[test]
+    fn configuration_model_is_reproducible() {
+        let degrees = vec![3; 10];
+        assert_eq!(
+            configuration_model(&degrees, 4).unwrap(),
+            configuration_model(&degrees, 4).unwrap()
+        );
+        assert_ne!(
+            configuration_model(&degrees, 4).unwrap(),
+            configuration_model(&degrees, 5).unwrap()
+        );
+    }
+
+    #[test]
+    fn erdos_renyi_has_exactly_the_edges_asked_for() {
+        let edges = erdos_renyi(50, 120, 3).unwrap();
+        assert_eq!(edges.len(), 120);
+
+        let unique: HashSet<_> = edges.iter().copied().collect();
+        assert_eq!(unique.len(), 120, "no repeats");
+        assert!(edges.iter().all(|&(u, v)| u != v), "no self-loops");
+        assert!(edges.iter().all(|&(u, v)| u < 50 && v < 50));
+    }
+
+    #[test]
+    fn erdos_renyi_can_fill_a_complete_graph_but_no_more() {
+        assert_eq!(erdos_renyi(5, 10, 1).unwrap().len(), 10);
+        assert!(erdos_renyi(5, 11, 1).is_err());
+        assert!(erdos_renyi(5, 0, 1).unwrap().is_empty());
+    }
+
+    #[test]
+    fn erdos_renyi_is_reproducible() {
+        assert_eq!(
+            erdos_renyi(30, 60, 8).unwrap(),
+            erdos_renyi(30, 60, 8).unwrap()
+        );
+        assert_ne!(
+            erdos_renyi(30, 60, 8).unwrap(),
+            erdos_renyi(30, 60, 9).unwrap()
+        );
     }
 }

@@ -11,7 +11,7 @@ Pure math, no I/O, no global state. Located in `src/netsmith/core/`:
 - `graph.py`: Core graph types (`Graph`, `GraphView`)
 - `metrics.py`: Degree, centrality (degree, betweenness), assortativity, clustering, k-core, components
 - `paths.py`: Shortest paths, reachability, walk metrics
-- `community.py`: Modularity and Louvain (built-in kernels), label propagation hooks (NetworkX)
+- `community.py`: Modularity, Louvain and label propagation (all built-in kernels)
 - `nulls.py`: Null models and permutation tests
 - `stats.py`: Distributions, confidence intervals, bootstrap
 
@@ -107,7 +107,7 @@ pip install netsmith
 **With optional dependencies:**
 ```bash
 pip install netsmith[scipy]      # For sparse matrices (adjacency_matrix format='sparse'/'coo')
-pip install netsmith[networkx]   # For label propagation, null models, k-core decomposition
+pip install netsmith[networkx]   # Interop only: Graph.as_networkx()
 pip install netsmith[pandas]     # For pandas data loading
 pip install netsmith[polars]     # For polars data loading
 
@@ -118,9 +118,9 @@ pip install netsmith[scipy,networkx,pandas,polars]
 pip install netsmith[dev]
 ```
 
-**Note:** Core functionality (degree, paths, components, clustering, Louvain community
-detection) works with just `numpy`. `scipy` is only needed for sparse matrix formats, and
-`networkx` is only needed for label propagation and null models.
+**Note:** Every algorithm works with just `numpy` — community detection, k-core, null
+models, centrality and paths included. `scipy` is only needed for sparse matrix formats,
+and `networkx` only for `Graph.as_networkx()` interop; no computation reaches for it.
 
 ## Rust Backend
 

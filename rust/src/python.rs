@@ -13,10 +13,11 @@ use pyo3::wrap_pyfunction;
 
 use crate::{
     centrality::betweenness,
-    community::{louvain, modularity},
+    community::{label_propagation, louvain, modularity},
     degree::{degree_sequence, in_degree_sequence, out_degree_sequence, strength_sequence},
+    kcore::core_numbers,
     metrics::{average_clustering, local_clustering, triangles_per_node},
-    nulls::degree_preserving_rewire_samples,
+    nulls::{configuration_model, degree_preserving_rewire_samples, erdos_renyi},
     paths::{
         connected_components, mean_shortest_path, shortest_paths_from_source,
         shortest_paths_from_sources,
@@ -308,6 +309,77 @@ fn rewire_degree_preserving_rust(
     Ok((rewired.into_pyarray(py).to_owned(), swaps, attempts))
 }
 
+/// Compute k-core numbers
+#[pyfunction]
+fn core_numbers_rust(
+    py: Python<'_>,
+    n: usize,
+    edges: PyReadonlyArray2<usize>,
+) -> PyResult<Py<PyArray1<usize>>> {
+    let edge_list = edges_from_array(edges)?;
+    let cores = core_numbers(n, &edge_list)?;
+    Ok(cores.into_pyarray(py).to_owned())
+}
+
+/// Detect communities by asynchronous label propagation
+#[pyfunction]
+#[pyo3(signature = (n, edges, weights=None, seed=0, max_iter=100))]
+fn label_propagation_rust(
+    py: Python<'_>,
+    n: usize,
+    edges: PyReadonlyArray2<usize>,
+    weights: Option<PyReadonlyArray1<f64>>,
+    seed: u64,
+    max_iter: usize,
+) -> PyResult<Py<PyArray1<usize>>> {
+    let edge_list = edges_from_array(edges)?;
+    let weights = weights_from_array(weights);
+
+    let labels =
+        py.allow_threads(|| label_propagation(n, &edge_list, weights.as_deref(), seed, max_iter))?;
+    Ok(labels.into_pyarray(py).to_owned())
+}
+
+/// Sample a simple graph with the given degree sequence
+///
+/// Returns (edges, discarded_pairings). Pairings that would self-loop or
+/// repeat an edge are dropped, so the realized degrees can fall short of the
+/// requested ones by twice the discarded count.
+#[pyfunction]
+fn configuration_model_rust(
+    py: Python<'_>,
+    degrees: PyReadonlyArray1<usize>,
+    seed: u64,
+) -> PyResult<(Py<PyArray2<usize>>, usize)> {
+    let degrees = degrees.as_array().to_vec();
+    let result = py.allow_threads(|| configuration_model(&degrees, seed))?;
+
+    let mut edges = ndarray::Array2::<usize>::zeros((result.edges.len(), 2));
+    result.edges.iter().enumerate().for_each(|(i, &(u, v))| {
+        edges[[i, 0]] = u;
+        edges[[i, 1]] = v;
+    });
+    Ok((edges.into_pyarray(py).to_owned(), result.discarded_pairings))
+}
+
+/// Sample a uniformly random simple graph with n nodes and m edges
+#[pyfunction]
+fn erdos_renyi_rust(
+    py: Python<'_>,
+    n: usize,
+    m: usize,
+    seed: u64,
+) -> PyResult<Py<PyArray2<usize>>> {
+    let sampled = py.allow_threads(|| erdos_renyi(n, m, seed))?;
+
+    let mut edges = ndarray::Array2::<usize>::zeros((sampled.len(), 2));
+    sampled.iter().enumerate().for_each(|(i, &(u, v))| {
+        edges[[i, 0]] = u;
+        edges[[i, 1]] = v;
+    });
+    Ok(edges.into_pyarray(py).to_owned())
+}
+
 /// Python module for netsmith_rs
 #[pymodule]
 fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -331,11 +403,17 @@ fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     // Centrality
     m.add_function(wrap_pyfunction!(betweenness_rust, m)?)?;
 
+    // k-core
+    m.add_function(wrap_pyfunction!(core_numbers_rust, m)?)?;
+
     // Null models
     m.add_function(wrap_pyfunction!(rewire_degree_preserving_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(configuration_model_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(erdos_renyi_rust, m)?)?;
 
     // Community detection
     m.add_function(wrap_pyfunction!(louvain_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(label_propagation_rust, m)?)?;
     m.add_function(wrap_pyfunction!(modularity_rust, m)?)?;
 
     Ok(())

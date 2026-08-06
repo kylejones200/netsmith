@@ -225,45 +225,38 @@ def clustering(graph: Graph, node: Optional[int] = None) -> Union[NDArray, float
     return api_clustering(graph, node=node, backend="auto")
 
 
-def k_core(graph: Graph, k: int) -> NDArray:
+def k_core(graph: Graph, k: Optional[int] = None, backend: str = "auto") -> NDArray:
     """
     Compute k-core decomposition.
 
     Parameters
     ----------
     graph : Graph
-        Input graph
-    k : int
-        Minimum degree for k-core
+        Input graph. Direction is ignored — the k-core is defined on the
+        undirected graph — and self-loops are not neighbours.
+    k : int, optional
+        Kept for backwards compatibility and otherwise unused: the core number
+        of every node is returned, and the k-core is `core_numbers >= k`.
+    backend : str, default "auto"
+        Computation backend: "auto" (prefer Rust), "python", or "rust"
 
     Returns
     -------
     core_numbers : array (n_nodes,)
-        Core number for each node
+        The largest k for which each node survives in the k-core
+
+    Examples
+    --------
+    >>> G = Graph(edges=[(0, 1), (1, 2), (0, 2), (2, 3)], n_nodes=4)
+    >>> cores = k_core(G)
+    >>> [int(c) for c in cores]
+    [2, 2, 2, 1]
+    >>> [int(node) for node in np.flatnonzero(cores >= 2)]  # the 2-core
+    [0, 1, 2]
     """
-    # Convert to NetworkX for k-core computation
-    try:
-        import networkx as nx
-    except ImportError:
-        raise ImportError(
-            "networkx is required for k-core computation. Install with: pip install networkx"
-        )
+    from ..engine.dispatch import compute_core_numbers
 
-    nx_graph = graph.as_networkx()
-
-    # Convert to undirected for k-core
-    if nx_graph.is_directed():
-        nx_graph = nx_graph.to_undirected()
-
-    # Compute core numbers
-    core_dict = nx.core_number(nx_graph)
-
-    # Convert to array
-    core_numbers = np.zeros(graph.n_nodes, dtype=np.int64)
-    for node, core_num in core_dict.items():
-        core_numbers[node] = core_num
-
-    return core_numbers
+    return compute_core_numbers(graph.to_edge_list(), backend=backend)
 
 
 def components(graph: Graph, return_labels: bool = True) -> Union[int, NDArray]:
