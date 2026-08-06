@@ -3,7 +3,7 @@
 
 dev:
 	pip install -U pip maturin
-	maturin develop --release -m rust/crates/netsmith-py/Cargo.toml
+	maturin develop --release -m rust/Cargo.toml
 	pip install -e .[pandas,polars,networkx]
 
 test:

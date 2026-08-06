@@ -32,7 +32,10 @@ def _build_adjacency(edges: EdgeList, weighted: bool) -> _Adjacency:
     for idx in range(len(edges.u)):
         u = int(edges.u[idx])
         v = int(edges.v[idx])
-        if u < 0 or v < 0 or u >= n or v >= n or u == v:
+        if u < 0 or v < 0 or u >= n or v >= n:
+            raise ValueError(f"edge {idx} ({u}, {v}) names a node id outside [0, {n})")
+        if u == v:
+            # A self-loop cannot lie on a shortest path between two nodes.
             continue
         distance = float(edges.w[idx]) if weighted else 1.0
         if weighted and not distance > 0.0:

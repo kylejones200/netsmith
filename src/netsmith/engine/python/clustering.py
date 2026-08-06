@@ -24,7 +24,9 @@ def clustering_python(edges: EdgeList) -> NDArray[np.float64]:
     adj = [set() for _ in range(n)]
     for i in range(len(edges.u)):
         u, v = int(edges.u[i]), int(edges.v[i])
-        if u < n and v < n and u != v:
+        if u < 0 or v < 0 or u >= n or v >= n:
+            raise ValueError(f"edge {i} ({u}, {v}) names a node id outside [0, {n})")
+        if u != v:
             adj[u].add(v)
             adj[v].add(u)
 

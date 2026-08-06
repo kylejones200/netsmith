@@ -12,6 +12,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The Rust workspace is one crate. `netsmith-core` and `netsmith-py` were split
+  across `rust/crates/`, which bought nothing — no third crate consumed the core,
+  and the split forced the `[profile.release]` warning about a non-root package.
+  Now `rust/` is the crate, `rust/src/python.rs` holds the PyO3 bindings, and
+  pyo3 sits behind an optional `python` feature so `cargo test` links without
+  libpython. Maturin builds it with `--features python`; anything that referred
+  to `rust/crates/netsmith-py/Cargo.toml` now points at `rust/Cargo.toml`.
+- `panic = "abort"` is gone from the release profile. It turned any Rust panic
+  into a killed interpreter with no traceback; panics now surface as Python
+  exceptions.
+
+### Fixed — silent failures
+- Kernels no longer skip edges that name a node outside the graph. Every Rust
+  kernel returns a typed `GraphError` naming the offending edge, and the Python
+  kernels raise the same message. Previously `degree`, `clustering`,
+  `components`, `paths`, `louvain`, `modularity` and `betweenness` all dropped
+  such edges and answered a question about a different graph.
+- `strength_sequence` padded a short weight array with 1.0 per missing entry.
+  A weights array that does not cover every edge is now an error.
+- `backend="rust"` no longer falls back to Python. Asking for a backend and
+  silently getting another misreports what ran; the missing kernel is now a
+  `BackendError`. `backend="auto"` still chooses freely, which is its job.
+- `shortest_paths(weight=...)` accepted the argument and returned hop counts.
+  It now raises `NotImplementedError` rather than passing off hops as distances.
+- `Graph.edges_coo()` caught malformed edges, warned, and returned empty arrays,
+  turning every downstream metric into a confident wrong answer. It raises.
+- `null_models(method="degree_preserving")` swallowed the exception from
+  `double_edge_swap` and returned the observed graph as its own null model — a
+  significance test against itself. Both it and the configuration model now
+  report failure instead of returning fewer or fake samples.
+- Rust panics on bad input (weight-length asserts) are typed errors instead.
+
 ### Added
 - Betweenness centrality — a Rust `centrality` module in `netsmith-core`
   implementing Brandes' algorithm, with the per-source shortest-path sweeps run

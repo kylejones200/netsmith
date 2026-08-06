@@ -1,6 +1,7 @@
 """Tests for netsmith.ona.silo — union-find silo detection."""
 
 import pytest
+
 from netsmith.ona import SiloResult, detect_silos
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

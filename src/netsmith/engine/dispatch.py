@@ -1,9 +1,16 @@
 """
 Backend dispatch: Selects Python or Rust backend at runtime.
+
+Failure policy
+--------------
+``backend="auto"`` may quietly use whichever backend is available — that is
+what "auto" means. ``backend="rust"`` never falls back: if the extension is not
+installed, or has no kernel for the requested computation, that is an error.
+Returning the Python result under a Rust label would misreport what ran.
 """
 
 import logging
-from typing import Dict, Literal, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,25 +24,56 @@ Backend = Literal["auto", "python", "rust"]
 
 
 def _detect_backend(preference: Backend = "auto") -> str:
-    """Detect available backend."""
-    if preference == "rust":
-        try:
-            import netsmith_rs  # type: ignore  # noqa: F401
+    """
+    Resolve a backend preference against what is actually installed.
 
-            return "rust"
-        except ImportError:
-            if preference == "rust":
-                raise ImportError("Rust backend requested but not available")
-            return "python"
-    elif preference == "python":
+    Raises
+    ------
+    ImportError
+        If "rust" was requested and the extension is not importable
+    ValueError
+        If the preference is not a known backend name
+    """
+    if preference not in ("auto", "python", "rust"):
+        raise ValueError(f"unknown backend: {preference!r} (expected 'auto', 'python' or 'rust')")
+    if preference == "python":
         return "python"
-    else:  # auto
-        try:
-            import netsmith_rs  # type: ignore  # noqa: F401
 
-            return "rust"
-        except ImportError:
-            return "python"
+    try:
+        import netsmith_rs  # type: ignore  # noqa: F401
+
+        return "rust"
+    except ImportError:
+        if preference == "rust":
+            raise ImportError(
+                "Rust backend requested but netsmith_rs is not available. "
+                "Build it with: maturin develop --release -m rust/Cargo.toml"
+            )
+        return "python"
+
+
+def _rust_kernel(name: str, backend: Backend) -> Optional[Callable]:
+    """
+    Return the named Rust kernel, or None when Python should run instead.
+
+    Raises
+    ------
+    BackendError
+        If the Rust backend was demanded but has no kernel by that name
+    """
+    if _detect_backend(backend) != "rust":
+        return None
+
+    from . import rust
+
+    kernel = getattr(rust, name, None)
+    if kernel is None:
+        if backend == "rust":
+            raise BackendError(
+                f"the Rust backend has no {name!r} kernel; use backend='python' or 'auto'"
+            )
+        logger.debug("No Rust %s kernel, using Python", name)
+    return kernel
 
 
 def compute_degree(edges: EdgeList, backend: Backend = "auto") -> NDArray[np.int64]:
@@ -54,23 +92,10 @@ def compute_degree(edges: EdgeList, backend: Backend = "auto") -> NDArray[np.int
     degrees : array (n_nodes,)
         Degree sequence
     """
-    backend_name = _detect_backend(backend)
+    kernel = _rust_kernel("degree_rust", backend)
+    if kernel is not None:
+        return kernel(edges)
 
-    if backend_name == "rust":
-        try:
-            from .rust import degree_rust
-
-            return degree_rust(edges)
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for degree computation, using Python")
-            pass
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in degree computation: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
-
-    # Python backend
     from .python import degree_python
 
     return degree_python(edges)
@@ -97,26 +122,21 @@ def compute_pagerank(
     max_iter : int, default 200
         Maximum iterations
     backend : str, default "auto"
-        Backend: "auto", "python", or "rust"
+        Backend: "auto", "python", or "rust". There is no Rust PageRank kernel
+        yet, so "rust" is an error rather than a silent Python computation.
 
     Returns
     -------
     pagerank : array (n_nodes,)
         PageRank scores
     """
-    backend_name = _detect_backend(backend)
-
-    if backend_name == "rust":
-        try:
-            from .rust import pagerank_rust
-
-            return pagerank_rust(edges, alpha, tol, max_iter)
-        except ImportError:
-            pass
+    kernel = _rust_kernel("pagerank_rust", backend)
+    if kernel is not None:
+        return kernel(edges, alpha, tol, max_iter)
 
     from .python import pagerank_python
 
-    return pagerank_python(edges, alpha, tol, max_iter)
+    return pagerank_python(edges, alpha=alpha, tol=tol, max_iter=max_iter)
 
 
 def compute_clustering(edges: EdgeList, backend: Backend = "auto") -> NDArray[np.float64]:
@@ -135,21 +155,9 @@ def compute_clustering(edges: EdgeList, backend: Backend = "auto") -> NDArray[np
     clustering : array (n_nodes,)
         Local clustering coefficients
     """
-    backend_name = _detect_backend(backend)
-
-    if backend_name == "rust":
-        try:
-            from .rust import clustering_rust
-
-            return clustering_rust(edges)
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for clustering computation, using Python")
-            pass
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in clustering computation: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
+    kernel = _rust_kernel("clustering_rust", backend)
+    if kernel is not None:
+        return kernel(edges)
 
     from .python import clustering_python
 
@@ -174,23 +182,11 @@ def compute_components(edges: EdgeList, backend: Backend = "auto") -> tuple[int,
     labels : array (n_nodes,)
         Component labels for each node
     """
-    backend_name = _detect_backend(backend)
-
-    if backend_name == "rust":
-        try:
-            from .rust import components_rust
-
-            labels = components_rust(edges)
-            n_components = int(np.max(labels) + 1) if len(labels) > 0 else 0
-            return n_components, labels
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for components computation, using Python")
-            pass
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in components computation: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
+    kernel = _rust_kernel("components_rust", backend)
+    if kernel is not None:
+        labels = kernel(edges)
+        n_components = int(np.max(labels) + 1) if len(labels) > 0 else 0
+        return n_components, labels
 
     from .python import components_python
 
@@ -205,41 +201,43 @@ def compute_shortest_paths(
     backend: Backend = "auto",
 ) -> Union[NDArray[np.int64], Dict[str, Union[float, int]]]:
     """
-    Compute shortest paths.
+    Compute shortest paths, measured in hops.
 
     Parameters
     ----------
     edges : EdgeList
         Edge list
     source : int, optional
-        Source node
+        Source node. When omitted, returns the mean shortest path length.
     target : int, optional
         Target node
     weight : str, optional
-        Edge weight attribute (not yet supported)
+        Not supported. Weighted shortest paths need Dijkstra, which this
+        kernel does not implement; passing a weight raises rather than
+        returning hop counts that look like distances.
     backend : str, default "auto"
         Backend: "auto", "python", or "rust"
 
     Returns
     -------
     dist : array or dict
-        Distance array or path information
+        Distance array, or path information when source is omitted
+
+    Raises
+    ------
+    NotImplementedError
+        If `weight` is given
     """
-    backend_name = _detect_backend(backend)
+    if weight is not None:
+        raise NotImplementedError(
+            "weighted shortest paths are not implemented; these distances are hop "
+            "counts. Pass weight=None, or use betweenness() for weighted routing."
+        )
 
-    if backend_name == "rust" and source is not None:
-        try:
-            from .rust import shortest_paths_rust
-
-            return shortest_paths_rust(edges, source, edges.directed)
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for shortest paths computation, using Python")
-            pass
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in shortest paths computation: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
+    if source is not None:
+        kernel = _rust_kernel("shortest_paths_rust", backend)
+        if kernel is not None:
+            return kernel(edges, source, edges.directed)
 
     from .python import shortest_paths_python
 
@@ -274,20 +272,9 @@ def compute_betweenness(
     betweenness : array (n_nodes,)
         Share of shortest paths between other pairs running through each node
     """
-    backend_name = _detect_backend(backend)
-
-    if backend_name == "rust":
-        try:
-            from .rust import betweenness_rust
-
-            return betweenness_rust(edges, normalized=normalized, weight=weight)
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for betweenness, using Python")
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in betweenness: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
+    kernel = _rust_kernel("betweenness_rust", backend)
+    if kernel is not None:
+        return kernel(edges, normalized=normalized, weight=weight)
 
     from .python import betweenness_python
 
@@ -305,7 +292,7 @@ def compute_communities(
     edges : EdgeList
         Edge list
     method : str, default "louvain"
-        Community detection method
+        Community detection method. Only "louvain" is implemented.
     backend : str, default "auto"
         Backend: "auto", "python", or "rust"
 
@@ -314,21 +301,9 @@ def compute_communities(
     communities : array (n_nodes,)
         Community assignments
     """
-    backend_name = _detect_backend(backend)
-
-    if backend_name == "rust":
-        try:
-            from .rust import communities_rust
-
-            return communities_rust(edges, method)
-        except ImportError:
-            # Expected: Rust backend not available, fall back silently
-            logger.debug("Rust backend not available for communities computation, using Python")
-            pass
-        except RuntimeError as e:
-            # Unexpected: Rust backend failed, log and raise
-            logger.error(f"Rust backend error in communities computation: {e}", exc_info=True)
-            raise BackendError(f"Rust backend failed: {e}") from e
+    kernel = _rust_kernel("communities_rust", backend)
+    if kernel is not None:
+        return kernel(edges, method)
 
     from .python import communities_python
 

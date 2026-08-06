@@ -1,5 +1,8 @@
 """
 Python backend: Reference implementations.
+
+These mirror the Rust kernels, including the failure policy: an edge naming a
+node that does not exist is an error, never a dropped edge.
 """
 
 from .centrality import betweenness_python

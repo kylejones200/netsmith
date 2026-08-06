@@ -52,7 +52,8 @@ netsmith = "netsmith.apps.cli:main"
 
 # Maturin configuration for Rust extension
 [tool.maturin]
-manifest-path = "./rust/crates/netsmith-py/Cargo.toml"
+manifest-path = "./rust/Cargo.toml"
+features = ["python"]  # pyo3 is optional so `cargo test` links without libpython
 python-source = "src"
 python-packages = ["netsmith"]
 release = true

@@ -1,13 +1,33 @@
-[workspace]
-members = [
-    "crates/netsmith-core",
-    "crates/netsmith-py",
-]
-resolver = "2"
-
-[workspace.package]
+[package]
+name = "netsmith-rs"
 version = "0.1.0"
 authors = ["Kyle T. Jones <kyle@kyletjones.com>"]
 edition = "2021"
+description = "Network analysis kernels for NetSmith, with optional Python bindings"
 license = "MIT"
 
+[lib]
+name = "netsmith_rs"
+# cdylib for the Python extension, rlib so `cargo test` and Rust callers work.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ndarray = { version = "0.15", features = ["rayon"] }
+rayon = "1.10"
+# Python bindings are optional: without the `python` feature this is a plain
+# Rust crate, which is what lets `cargo test` link without libpython.
+pyo3 = { version = "0.19", optional = true }
+numpy = { version = "0.19", optional = true }
+
+[dev-dependencies]
+approx = "0.5"
+rstest = "0.18"
+
+[features]
+default = []
+python = ["dep:pyo3", "dep:numpy", "pyo3/extension-module"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3

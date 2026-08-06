@@ -24,10 +24,11 @@ def shortest_paths_python(
     adj = [[] for _ in range(n)]
     for i in range(len(edges.u)):
         u, v = int(edges.u[i]), int(edges.v[i])
-        if u < n and v < n:
-            adj[u].append(v)
-            if not edges.directed:
-                adj[v].append(u)
+        if u < 0 or v < 0 or u >= n or v >= n:
+            raise ValueError(f"edge {i} ({u}, {v}) names a node id outside [0, {n})")
+        adj[u].append(v)
+        if not edges.directed:
+            adj[v].append(u)
 
     if source is not None:
         # Single source shortest paths
@@ -59,10 +60,11 @@ def mean_shortest_path_python(edges: EdgeList) -> float:
     adj = [[] for _ in range(n)]
     for i in range(len(edges.u)):
         u, v = int(edges.u[i]), int(edges.v[i])
-        if u < n and v < n:
-            adj[u].append(v)
-            if not edges.directed:
-                adj[v].append(u)
+        if u < 0 or v < 0 or u >= n or v >= n:
+            raise ValueError(f"edge {i} ({u}, {v}) names a node id outside [0, {n})")
+        adj[u].append(v)
+        if not edges.directed:
+            adj[v].append(u)
 
     total = 0
     pairs = 0

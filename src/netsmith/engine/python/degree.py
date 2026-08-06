@@ -9,18 +9,28 @@ from ..contracts import EdgeList
 
 
 def degree_python(edges: EdgeList) -> NDArray[np.int64]:
-    """Compute degree sequence (Python backend)."""
-    n = edges.n_nodes
-    degrees = np.zeros(n, dtype=np.int64)
+    """
+    Compute degree sequence (Python backend).
 
-    u = edges.u
-    v = edges.v
+    A self-loop counts once, matching the Rust kernel. Edges naming a node
+    outside the graph are an error, not a silently dropped edge.
 
-    for i in range(len(u)):
-        u_idx, v_idx = int(u[i]), int(v[i])
-        if u_idx < n:
-            degrees[u_idx] += 1
-        if not edges.directed and v_idx < n and u_idx != v_idx:
-            degrees[v_idx] += 1
+    Raises
+    ------
+    ValueError
+        If any edge names a node outside [0, n_nodes)
+    """
+    n = int(edges.n_nodes)
+    u = np.asarray(edges.u, dtype=np.int64)
+    v = np.asarray(edges.v, dtype=np.int64)
 
-    return degrees
+    if u.size:
+        out_of_range = (u < 0) | (u >= n) | (v < 0) | (v >= n)
+        if out_of_range.any():
+            first = int(np.flatnonzero(out_of_range)[0])
+            raise ValueError(
+                f"edge {first} ({u[first]}, {v[first]}) names a node id outside [0, {n})"
+            )
+
+    endpoints = u if edges.directed else np.concatenate([u, v[u != v]])
+    return np.bincount(endpoints, minlength=n).astype(np.int64)

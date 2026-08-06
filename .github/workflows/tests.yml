@@ -39,7 +39,7 @@ jobs:
           source .venv/bin/activate
           # Install the package in editable mode using maturin develop
           # This installs the Rust extension
-          maturin develop -m rust/crates/netsmith-py/Cargo.toml
+          maturin develop -m rust/Cargo.toml
           # Install the Python package plus the declared dev dependencies
           # (pytest, linters, click/pandas/pyarrow for the CLI tests) and the
           # optional extras the test suite exercises.

@@ -5,10 +5,13 @@
 //! weights. A self-loop of weight `w` contributes `2w` to its node's degree,
 //! which is the convention NetworkX uses, so modularity values match.
 //!
-//! Weights must be non-negative; modularity is not defined otherwise. Callers
-//! are responsible for validating that precondition.
+//! Weights must be non-negative; modularity is not defined otherwise. Both
+//! entry points validate that, along with the node ids, and return an error
+//! rather than skipping what they cannot use.
 
 use ndarray::Array1;
+
+use crate::{validate_edges, validate_weights, GraphError, WeightRule};
 
 /// Result of a Louvain run.
 #[derive(Debug, Clone)]
@@ -40,27 +43,13 @@ struct WeightedGraph {
 impl WeightedGraph {
     /// Build from an edge list, summing duplicate and reciprocal edges.
     ///
-    /// Edges referencing a node id `>= n` are skipped, matching
-    /// [`crate::build_adjacency_list`].
-    ///
-    /// # Panics
-    /// If `weights` is shorter than `edges`.
+    /// The caller validates node ids and weights first, so nothing here is
+    /// skipped or defaulted.
     fn from_edges(n: usize, edges: &[(usize, usize)], weights: Option<&[f64]>) -> Self {
-        if let Some(ws) = weights {
-            assert!(
-                ws.len() >= edges.len(),
-                "weights ({}) must be at least as long as edges ({})",
-                ws.len(),
-                edges.len()
-            );
-        }
         let mut adj = vec![Vec::<(usize, f64)>::new(); n];
         let mut self_loops = vec![0.0f64; n];
 
         for (idx, &(u, v)) in edges.iter().enumerate() {
-            if u >= n || v >= n {
-                continue;
-            }
             let w = weights.map_or(1.0, |ws| ws[idx]);
             if u == v {
                 self_loops[u] += w;
@@ -342,17 +331,40 @@ fn local_moving(
 ///
 /// Returns 0.0 for an empty graph or one with no edge weight.
 ///
-/// # Panics
-/// If `weights` is shorter than `edges`, or if `labels` is shorter than `n`.
+/// Returns [`GraphError`] if an edge names a node that does not exist, if the
+/// weights do not line up with the edges, or if `labels` does not have one
+/// entry per node.
 pub fn modularity(
     n: usize,
     edges: &[(usize, usize)],
     weights: Option<&[f64]>,
     labels: &[usize],
     resolution: f64,
-) -> f64 {
+) -> Result<f64, GraphError> {
+    validate_edges(n, edges)?;
+    validate_weights(edges.len(), weights, WeightRule::NonNegative)?;
+    validate_resolution(resolution)?;
+    if labels.len() != n {
+        return Err(GraphError::LabelsLengthMismatch {
+            labels: labels.len(),
+            n_nodes: n,
+        });
+    }
+
     let graph = WeightedGraph::from_edges(n, edges, weights);
-    graph.modularity(labels, resolution)
+    Ok(graph.modularity(labels, resolution))
+}
+
+/// Reject a resolution that would make modularity meaningless.
+fn validate_resolution(resolution: f64) -> Result<(), GraphError> {
+    if resolution > 0.0 && resolution.is_finite() {
+        Ok(())
+    } else {
+        Err(GraphError::InvalidParameter {
+            name: "resolution",
+            requirement: "must be finite and strictly positive",
+        })
+    }
 }
 
 /// Detect communities with the Louvain method.
@@ -371,10 +383,11 @@ pub fn modularity(
 /// * `max_levels` - cap on aggregation levels
 ///
 /// A graph with no edges (or all-zero weights) yields one community per node
-/// and modularity 0.0. Edges referencing a node id `>= n` are skipped.
+/// and modularity 0.0.
 ///
-/// # Panics
-/// If `weights` is shorter than `edges`.
+/// Returns [`GraphError`] if an edge names a node that does not exist, if the
+/// weights do not line up with the edges, or if `resolution` or `max_levels`
+/// is out of range.
 pub fn louvain(
     n: usize,
     edges: &[(usize, usize)],
@@ -382,27 +395,37 @@ pub fn louvain(
     resolution: f64,
     seed: Option<u64>,
     max_levels: usize,
-) -> LouvainResult {
+) -> Result<LouvainResult, GraphError> {
+    validate_edges(n, edges)?;
+    validate_weights(edges.len(), weights, WeightRule::NonNegative)?;
+    validate_resolution(resolution)?;
+    if max_levels == 0 {
+        return Err(GraphError::InvalidParameter {
+            name: "max_levels",
+            requirement: "must be at least 1",
+        });
+    }
+
     let original = WeightedGraph::from_edges(n, edges, weights);
 
     if n == 0 {
-        return LouvainResult {
+        return Ok(LouvainResult {
             labels: Array1::from_vec(Vec::new()),
             modularity: 0.0,
             n_communities: 0,
             n_levels: 0,
-        };
+        });
     }
 
     let mut node_labels: Vec<usize> = (0..n).collect();
 
     if original.total_weight <= 0.0 {
-        return LouvainResult {
+        return Ok(LouvainResult {
             labels: Array1::from_vec(node_labels),
             modularity: 0.0,
             n_communities: n,
             n_levels: 0,
-        };
+        });
     }
 
     let mut rng = seed.map(SplitMix64::new);
@@ -430,12 +453,12 @@ pub fn louvain(
     let n_communities = renumber(&mut node_labels, n);
     let modularity = original.modularity(&node_labels, resolution);
 
-    LouvainResult {
+    Ok(LouvainResult {
         labels: Array1::from_vec(node_labels),
         modularity,
         n_communities,
         n_levels,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -480,14 +503,14 @@ mod tests {
         let edges = vec![(0, 1), (1, 2)];
         // All in one community: internal = 2, tot = 4 => 2/2 - (4/4)^2 = 0.0
         assert_relative_eq!(
-            modularity(3, &edges, None, &[0, 0, 0], 1.0),
+            modularity(3, &edges, None, &[0, 0, 0], 1.0).unwrap(),
             0.0,
             epsilon = 1e-12
         );
         // Split {0,1} and {2}: internal = 1 and 0; tot = 3 and 1
         // => 1/2 - (3/4)^2 + 0 - (1/4)^2 = 0.5 - 0.5625 - 0.0625 = -0.125
         assert_relative_eq!(
-            modularity(3, &edges, None, &[0, 0, 1], 1.0),
+            modularity(3, &edges, None, &[0, 0, 1], 1.0).unwrap(),
             -0.125,
             epsilon = 1e-12
         );
@@ -498,16 +521,20 @@ mod tests {
         // Single node with a self-loop of weight 1: m = 1, degree = 2.
         let edges = vec![(0, 0)];
         // internal = 1, tot = 2 => 1/1 - (2/2)^2 = 0.0
-        assert_relative_eq!(modularity(1, &edges, None, &[0], 1.0), 0.0, epsilon = 1e-12);
+        assert_relative_eq!(
+            modularity(1, &edges, None, &[0], 1.0).unwrap(),
+            0.0,
+            epsilon = 1e-12
+        );
     }
 
     #[test]
     fn empty_and_edgeless_graphs_are_handled() {
-        let result = louvain(0, &[], None, 1.0, None, 10);
+        let result = louvain(0, &[], None, 1.0, None, 10).unwrap();
         assert_eq!(result.n_communities, 0);
         assert_eq!(result.labels.len(), 0);
 
-        let result = louvain(4, &[], None, 1.0, None, 10);
+        let result = louvain(4, &[], None, 1.0, None, 10).unwrap();
         assert_eq!(result.n_communities, 4);
         assert_relative_eq!(result.modularity, 0.0, epsilon = 1e-12);
     }
@@ -515,7 +542,7 @@ mod tests {
     #[test]
     fn finds_two_triangles() {
         let (n, edges) = two_triangles();
-        let result = louvain(n, &edges, None, 1.0, Some(42), 10);
+        let result = louvain(n, &edges, None, 1.0, Some(42), 10).unwrap();
         assert_eq!(result.n_communities, 2);
         assert_eq!(result.labels[0], result.labels[1]);
         assert_eq!(result.labels[1], result.labels[2]);
@@ -530,7 +557,7 @@ mod tests {
     #[test]
     fn finds_ring_of_cliques() {
         let (n, edges) = ring_of_cliques(4, 6);
-        let result = louvain(n, &edges, None, 1.0, Some(7), 20);
+        let result = louvain(n, &edges, None, 1.0, Some(7), 20).unwrap();
         assert_eq!(result.n_communities, 4);
         for c in 0..4 {
             let base = c * 6;
@@ -544,7 +571,7 @@ mod tests {
     #[test]
     fn labels_are_consecutive_from_zero() {
         let (n, edges) = ring_of_cliques(4, 6);
-        let result = louvain(n, &edges, None, 1.0, Some(3), 20);
+        let result = louvain(n, &edges, None, 1.0, Some(3), 20).unwrap();
         let mut seen = vec![false; result.n_communities];
         for &label in result.labels.iter() {
             assert!(label < result.n_communities);
@@ -556,11 +583,11 @@ mod tests {
     #[test]
     fn reported_modularity_matches_recomputation() {
         let (n, edges) = ring_of_cliques(5, 5);
-        let result = louvain(n, &edges, None, 1.0, Some(11), 20);
+        let result = louvain(n, &edges, None, 1.0, Some(11), 20).unwrap();
         let labels: Vec<usize> = result.labels.to_vec();
         assert_relative_eq!(
             result.modularity,
-            modularity(n, &edges, None, &labels, 1.0),
+            modularity(n, &edges, None, &labels, 1.0).unwrap(),
             epsilon = 1e-12
         );
     }
@@ -568,8 +595,8 @@ mod tests {
     #[test]
     fn same_seed_gives_same_partition() {
         let (n, edges) = ring_of_cliques(4, 5);
-        let a = louvain(n, &edges, None, 1.0, Some(99), 20);
-        let b = louvain(n, &edges, None, 1.0, Some(99), 20);
+        let a = louvain(n, &edges, None, 1.0, Some(99), 20).unwrap();
+        let b = louvain(n, &edges, None, 1.0, Some(99), 20).unwrap();
         assert_eq!(a.labels.to_vec(), b.labels.to_vec());
         assert_relative_eq!(a.modularity, b.modularity, epsilon = 1e-15);
     }
@@ -579,9 +606,9 @@ mod tests {
         // 4 cliques of 6, joined in a ring. At gamma = 1 the cliques are the
         // natural partition; below it they merge, above it they split.
         let (n, edges) = ring_of_cliques(4, 6);
-        let coarse = louvain(n, &edges, None, 0.05, Some(5), 20);
-        let natural = louvain(n, &edges, None, 1.0, Some(5), 20);
-        let fine = louvain(n, &edges, None, 8.0, Some(5), 20);
+        let coarse = louvain(n, &edges, None, 0.05, Some(5), 20).unwrap();
+        let natural = louvain(n, &edges, None, 1.0, Some(5), 20).unwrap();
+        let fine = louvain(n, &edges, None, 8.0, Some(5), 20).unwrap();
         assert!(
             coarse.n_communities < natural.n_communities,
             "coarse {} natural {}",
@@ -602,7 +629,7 @@ mod tests {
         // Square 0-1-2-3-0; heavy weights on 0-1 and 2-3 should pair those up.
         let edges = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
         let weights = vec![10.0, 0.1, 10.0, 0.1];
-        let result = louvain(4, &edges, Some(&weights), 1.0, Some(1), 10);
+        let result = louvain(4, &edges, Some(&weights), 1.0, Some(1), 10).unwrap();
         assert_eq!(result.n_communities, 2);
         assert_eq!(result.labels[0], result.labels[1]);
         assert_eq!(result.labels[2], result.labels[3]);
@@ -616,17 +643,36 @@ mod tests {
         let merged = vec![(0, 1), (1, 2)];
         let merged_w = vec![1.0, 1.0];
         assert_relative_eq!(
-            modularity(3, &split, Some(&split_w), &[0, 0, 1], 1.0),
-            modularity(3, &merged, Some(&merged_w), &[0, 0, 1], 1.0),
+            modularity(3, &split, Some(&split_w), &[0, 0, 1], 1.0).unwrap(),
+            modularity(3, &merged, Some(&merged_w), &[0, 0, 1], 1.0).unwrap(),
             epsilon = 1e-12
         );
     }
 
     #[test]
-    fn out_of_range_edges_are_skipped() {
+    fn out_of_range_edges_are_rejected_not_skipped() {
+        // Dropping edge (1, 9) would answer a question about a different graph.
         let edges = vec![(0, 1), (1, 9), (0, 2)];
-        let result = louvain(3, &edges, None, 1.0, Some(1), 10);
-        assert_eq!(result.labels.len(), 3);
-        assert_eq!(result.n_communities, 1);
+        assert_eq!(
+            louvain(3, &edges, None, 1.0, Some(1), 10).unwrap_err(),
+            GraphError::NodeOutOfRange {
+                index: 1,
+                u: 1,
+                v: 9,
+                n_nodes: 3,
+            }
+        );
+        assert!(modularity(3, &edges, None, &[0, 0, 0], 1.0).is_err());
+    }
+
+    #[test]
+    fn bad_parameters_are_rejected() {
+        let edges = vec![(0, 1), (1, 2)];
+        assert!(louvain(3, &edges, None, 0.0, None, 10).is_err());
+        assert!(louvain(3, &edges, None, f64::NAN, None, 10).is_err());
+        assert!(louvain(3, &edges, None, 1.0, None, 0).is_err());
+        assert!(louvain(3, &edges, Some(&[1.0]), 1.0, None, 10).is_err());
+        assert!(louvain(3, &edges, Some(&[1.0, -1.0]), 1.0, None, 10).is_err());
+        assert!(modularity(3, &edges, None, &[0, 0], 1.0).is_err());
     }
 }
