@@ -7,6 +7,7 @@ The API does not change.
 
 from .contracts import EdgeList, GraphData
 from .dispatch import (
+    compute_betweenness,
     compute_clustering,
     compute_communities,
     compute_components,
@@ -18,6 +19,7 @@ from .dispatch import (
 __all__ = [
     "compute_degree",
     "compute_pagerank",
+    "compute_betweenness",
     "compute_communities",
     "compute_clustering",
     "compute_components",

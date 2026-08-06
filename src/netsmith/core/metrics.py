@@ -112,16 +112,19 @@ def centrality(graph: Graph, method: str = "degree", **kwargs) -> NDArray:
     graph : Graph
         Input graph
     method : str, default "degree"
-        Centrality method. Currently supported: "degree".
-        Planned: "betweenness", "closeness", "eigenvector", "pagerank"
+        Centrality method: "degree" or "betweenness".
+        Planned: "closeness", "eigenvector", "pagerank"
     **kwargs
-        Additional arguments for specific methods (currently unused)
+        Passed through to the method. "betweenness" accepts `normalized`,
+        `weight` and `backend`.
 
     Returns
     -------
     centrality : NDArray
         Array (n_nodes,) with centrality scores for each node.
-        For "degree" method, returns degree centrality (normalized degrees).
+        For "degree", returns degree centrality (normalized degrees).
+        For "betweenness", the share of shortest paths running through each
+        node, computed with Brandes' algorithm.
 
     Raises
     ------
@@ -134,12 +137,13 @@ def centrality(graph: Graph, method: str = "degree", **kwargs) -> NDArray:
     Degree centrality is the simplest measure (normalized degree).
     Other methods will be added in future releases.
     """
-    # For now, implement degree centrality
-    # Other methods will be added in engine layer
     if method == "degree":
         return degree(graph, mode="total" if graph.directed else "out")
-    else:
-        raise NotImplementedError(f"Centrality method '{method}' not yet implemented")
+    if method == "betweenness":
+        from ..api.metrics import betweenness as api_betweenness
+
+        return api_betweenness(graph, **kwargs)
+    raise NotImplementedError(f"Centrality method '{method}' not yet implemented")
 
 
 def assortativity(graph: Graph, attribute: Optional[NDArray] = None) -> float:

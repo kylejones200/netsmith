@@ -8,6 +8,7 @@ use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2}
 use pyo3::exceptions::PyValueError;
 
 use netsmith_core::{
+    centrality::betweenness,
     community::{louvain, modularity},
     degree::{degree_sequence, in_degree_sequence, out_degree_sequence, strength_sequence},
     metrics::{triangles_per_node, average_clustering, local_clustering},
@@ -172,6 +173,22 @@ fn weights_from_array(
     weights: Option<PyReadonlyArray1<f64>>,
     n_edges: usize,
 ) -> PyResult<Option<Vec<f64>>> {
+    weights_from_array_inner(weights, n_edges, false)
+}
+
+/// Extract and validate optional edge weights, requiring each to be > 0
+fn positive_weights_from_array(
+    weights: Option<PyReadonlyArray1<f64>>,
+    n_edges: usize,
+) -> PyResult<Option<Vec<f64>>> {
+    weights_from_array_inner(weights, n_edges, true)
+}
+
+fn weights_from_array_inner(
+    weights: Option<PyReadonlyArray1<f64>>,
+    n_edges: usize,
+    require_positive: bool,
+) -> PyResult<Option<Vec<f64>>> {
     let Some(w) = weights else {
         return Ok(None);
     };
@@ -187,7 +204,13 @@ fn weights_from_array(
         if !value.is_finite() {
             return Err(PyValueError::new_err("weights must be finite"));
         }
-        if value < 0.0 {
+        if require_positive {
+            if value <= 0.0 {
+                return Err(PyValueError::new_err(
+                    "weights must be strictly positive when used as shortest-path distances",
+                ));
+            }
+        } else if value < 0.0 {
             return Err(PyValueError::new_err(
                 "weights must be non-negative (modularity is undefined for negative weights)",
             ));
@@ -280,6 +303,33 @@ fn modularity_rust(
     ))
 }
 
+/// Compute betweenness centrality (Brandes)
+#[pyfunction]
+#[pyo3(signature = (n, edges, weights=None, directed=false, normalized=true))]
+fn betweenness_rust(
+    py: Python<'_>,
+    n: usize,
+    edges: PyReadonlyArray2<usize>,
+    weights: Option<PyReadonlyArray1<f64>>,
+    directed: bool,
+    normalized: bool,
+) -> PyResult<Py<PyArray1<f64>>> {
+    let edge_list = edges_from_array(edges)?;
+    check_edge_bounds(n, &edge_list)?;
+    let weights_vec = positive_weights_from_array(weights, edge_list.len())?;
+
+    let scores = py.allow_threads(|| {
+        betweenness(
+            n,
+            &edge_list,
+            weights_vec.as_deref(),
+            directed,
+            normalized,
+        )
+    });
+    Ok(scores.into_pyarray(py).to_owned())
+}
+
 /// Python module for netsmith_rs
 #[pymodule]
 fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -298,6 +348,9 @@ fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mean_shortest_path_rust, m)?)?;
     m.add_function(wrap_pyfunction!(shortest_paths_rust, m)?)?;
     m.add_function(wrap_pyfunction!(connected_components_rust, m)?)?;
+
+    // Centrality
+    m.add_function(wrap_pyfunction!(betweenness_rust, m)?)?;
 
     // Community detection
     m.add_function(wrap_pyfunction!(louvain_rust, m)?)?;
