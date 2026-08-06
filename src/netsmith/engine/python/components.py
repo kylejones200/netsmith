@@ -18,9 +18,10 @@ def components_python(edges: EdgeList) -> tuple[int, NDArray[np.int64]]:
     adj = [[] for _ in range(n)]
     for i in range(len(edges.u)):
         u, v = int(edges.u[i]), int(edges.v[i])
-        if u < n and v < n:
-            adj[u].append(v)
-            adj[v].append(u)
+        if u < 0 or v < 0 or u >= n or v >= n:
+            raise ValueError(f"edge {i} ({u}, {v}) names a node id outside [0, {n})")
+        adj[u].append(v)
+        adj[v].append(u)
 
     # BFS to find components
     labels = np.full(n, -1, dtype=np.int64)

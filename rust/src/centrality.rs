@@ -13,6 +13,8 @@ use std::collections::{BinaryHeap, VecDeque};
 use ndarray::Array1;
 use rayon::prelude::*;
 
+use crate::{validate_edges, validate_weights, GraphError, WeightRule};
+
 /// A weighted directed adjacency list, self-loops removed.
 ///
 /// Self-loops can never lie on a shortest path between two distinct nodes, and
@@ -23,6 +25,8 @@ struct AdjacencyList {
 }
 
 impl AdjacencyList {
+    /// The caller validates node ids and weights first; only self-loops are
+    /// dropped here, and only because they cannot lie on any shortest path.
     fn build(
         n: usize,
         edges: &[(usize, usize)],
@@ -32,7 +36,7 @@ impl AdjacencyList {
         let mut neighbours = vec![Vec::<(usize, f64)>::new(); n];
 
         for (idx, &(u, v)) in edges.iter().enumerate() {
-            if u >= n || v >= n || u == v {
+            if u == v {
                 continue;
             }
             let w = weights.map_or(1.0, |ws| ws[idx]);
@@ -272,25 +276,19 @@ fn rescale(betweenness: &mut [f64], n: usize, normalized: bool, directed: bool) 
 ///
 /// Matches `networkx.betweenness_centrality` for the same arguments.
 ///
-/// # Panics
-/// If `weights` is shorter than `edges`.
+/// Returns [`GraphError`] if an edge names a node that does not exist, or if
+/// the weights do not line up with the edges or are not strictly positive.
 pub fn betweenness(
     n: usize,
     edges: &[(usize, usize)],
     weights: Option<&[f64]>,
     directed: bool,
     normalized: bool,
-) -> Array1<f64> {
-    if let Some(ws) = weights {
-        assert!(
-            ws.len() >= edges.len(),
-            "weights ({}) must be at least as long as edges ({})",
-            ws.len(),
-            edges.len()
-        );
-    }
+) -> Result<Array1<f64>, GraphError> {
+    validate_edges(n, edges)?;
+    validate_weights(edges.len(), weights, WeightRule::StrictlyPositive)?;
     if n == 0 {
-        return Array1::zeros(0);
+        return Ok(Array1::zeros(0));
     }
 
     let graph = AdjacencyList::build(n, edges, weights, directed);
@@ -318,7 +316,7 @@ pub fn betweenness(
         );
 
     rescale(&mut totals, n, normalized, directed);
-    Array1::from_vec(totals)
+    Ok(Array1::from_vec(totals))
 }
 
 #[cfg(test)]
@@ -339,7 +337,7 @@ mod tests {
     #[test]
     fn star_centre_takes_everything() {
         let (n, edges) = star(4);
-        let bc = betweenness(n, &edges, None, false, true);
+        let bc = betweenness(n, &edges, None, false, true).unwrap();
         // Every shortest path between two leaves runs through the centre.
         assert_relative_eq!(bc[0], 1.0, epsilon = 1e-12);
         for leaf in 1..n {
@@ -350,7 +348,7 @@ mod tests {
     #[test]
     fn path_middle_beats_the_ends() {
         let (n, edges) = path(5);
-        let bc = betweenness(n, &edges, None, false, false);
+        let bc = betweenness(n, &edges, None, false, false).unwrap();
         // Unnormalized: node 2 lies between {0,1} and {3,4} => 2*2 = 4 pairs.
         assert_relative_eq!(bc[2], 4.0, epsilon = 1e-12);
         assert_relative_eq!(bc[1], 3.0, epsilon = 1e-12);
@@ -363,7 +361,7 @@ mod tests {
         // A 4-cycle: 0 and 2 are joined by two equally short routes, so each of
         // 1 and 3 carries half of that pair's path.
         let edges = vec![(0, 1), (1, 2), (2, 3), (3, 0)];
-        let bc = betweenness(4, &edges, None, false, false);
+        let bc = betweenness(4, &edges, None, false, false).unwrap();
         for node in 0..4 {
             assert_relative_eq!(bc[node], 0.5, epsilon = 1e-12);
         }
@@ -378,7 +376,7 @@ mod tests {
                 edges.push((i, j));
             }
         }
-        let bc = betweenness(5, &edges, None, false, true);
+        let bc = betweenness(5, &edges, None, false, true).unwrap();
         for node in 0..5 {
             assert_relative_eq!(bc[node], 0.0, epsilon = 1e-12);
         }
@@ -388,7 +386,7 @@ mod tests {
     fn disconnected_components_only_count_their_own_pairs() {
         // Two separate paths; each middle brokers only its own component.
         let edges = vec![(0, 1), (1, 2), (3, 4), (4, 5)];
-        let bc = betweenness(6, &edges, None, false, false);
+        let bc = betweenness(6, &edges, None, false, false).unwrap();
         assert_relative_eq!(bc[1], 1.0, epsilon = 1e-12);
         assert_relative_eq!(bc[4], 1.0, epsilon = 1e-12);
         assert_relative_eq!(bc[0], 0.0, epsilon = 1e-12);
@@ -400,11 +398,11 @@ mod tests {
         // one hop and node 1 brokers nothing; weighted, the route through 1 is
         // shorter, so node 1 brokers the pair.
         let edges = vec![(0, 1), (1, 2), (0, 2)];
-        let unweighted = betweenness(3, &edges, None, false, false);
+        let unweighted = betweenness(3, &edges, None, false, false).unwrap();
         assert_relative_eq!(unweighted[1], 0.0, epsilon = 1e-12);
 
         let weights = vec![1.0, 1.0, 10.0];
-        let weighted = betweenness(3, &edges, Some(&weights), false, false);
+        let weighted = betweenness(3, &edges, Some(&weights), false, false).unwrap();
         assert_relative_eq!(weighted[1], 1.0, epsilon = 1e-12);
     }
 
@@ -412,19 +410,19 @@ mod tests {
     fn direction_is_respected() {
         // 0 -> 1 -> 2 only: node 1 brokers the single ordered pair (0, 2).
         let edges = vec![(0, 1), (1, 2)];
-        let directed = betweenness(3, &edges, None, true, false);
+        let directed = betweenness(3, &edges, None, true, false).unwrap();
         assert_relative_eq!(directed[1], 1.0, epsilon = 1e-12);
 
         // Undirected, the same pair is swept from both ends and then halved.
-        let undirected = betweenness(3, &edges, None, false, false);
+        let undirected = betweenness(3, &edges, None, false, false).unwrap();
         assert_relative_eq!(undirected[1], 1.0, epsilon = 1e-12);
     }
 
     #[test]
     fn normalization_divides_by_the_pair_count() {
         let (n, edges) = path(5);
-        let raw = betweenness(n, &edges, None, false, false);
-        let normalized = betweenness(n, &edges, None, false, true);
+        let raw = betweenness(n, &edges, None, false, false).unwrap();
+        let normalized = betweenness(n, &edges, None, false, true).unwrap();
         let pairs = ((n - 1) * (n - 2)) as f64;
         for node in 0..n {
             // Raw scores are already halved for undirected input, so the
@@ -435,9 +433,9 @@ mod tests {
 
     #[test]
     fn tiny_graphs_are_handled() {
-        assert_eq!(betweenness(0, &[], None, false, true).len(), 0);
-        assert_relative_eq!(betweenness(1, &[], None, false, true)[0], 0.0);
-        let two = betweenness(2, &[(0, 1)], None, false, true);
+        assert_eq!(betweenness(0, &[], None, false, true).unwrap().len(), 0);
+        assert_relative_eq!(betweenness(1, &[], None, false, true).unwrap()[0], 0.0);
+        let two = betweenness(2, &[(0, 1)], None, false, true).unwrap();
         assert_relative_eq!(two[0], 0.0, epsilon = 1e-12);
         assert_relative_eq!(two[1], 0.0, epsilon = 1e-12);
     }
@@ -450,8 +448,8 @@ mod tests {
         messy.push((1, 2));
 
         assert_eq!(
-            betweenness(n, &edges, None, false, true).to_vec(),
-            betweenness(n, &messy, None, false, true).to_vec()
+            betweenness(n, &edges, None, false, true).unwrap().to_vec(),
+            betweenness(n, &messy, None, false, true).unwrap().to_vec()
         );
     }
 
@@ -464,7 +462,7 @@ mod tests {
             edges.push((i, (i + 1) % n));
             edges.push((i, (i + 7) % n));
         }
-        let parallel = betweenness(n, &edges, None, false, true);
+        let parallel = betweenness(n, &edges, None, false, true).unwrap();
 
         let graph = AdjacencyList::build(n, &edges, None, false);
         let mut sweep = Sweep::new(n);

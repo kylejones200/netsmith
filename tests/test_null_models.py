@@ -47,20 +47,40 @@ class TestNullModels:
             assert null_graph.n_nodes == graph.n_nodes
 
     def test_degree_preserving_model(self):
-        """Test degree-preserving randomization."""
-        edges = [(0, 1), (1, 2), (2, 0), (2, 3)]
-        graph = Graph(edges=edges, n_nodes=4, directed=False, weighted=False)
+        """Degree-preserving randomization keeps degrees but moves the edges."""
+        # Big enough that double_edge_swap has valid swaps to make. On a tiny
+        # graph it cannot randomize at all, which is now an error rather than
+        # a silent copy of the input.
+        import networkx as nx
+
+        source = nx.barabasi_albert_graph(60, 3, seed=7)
+        graph = Graph(edges=list(source.edges()), n_nodes=60, directed=False, weighted=False)
 
         result = null_models(graph, method="degree_preserving", n_samples=5, seed=42)
 
-        assert "graphs" in result
-        assert len(result["graphs"]) > 0
         assert result["method"] == "degree_preserving"
+        assert len(result["graphs"]) == 5
 
-        # Check that null graphs have same structure
-        for null_graph in result["graphs"][:3]:
+        observed_degrees = sorted(graph.degree_sequence())
+        observed_edges = {frozenset(e[:2]) for e in graph.edges}
+        for null_graph in result["graphs"]:
             assert null_graph.n_nodes == graph.n_nodes
             assert null_graph.n_edges == graph.n_edges
+            # The defining property: same degree sequence...
+            assert sorted(null_graph.degree_sequence()) == observed_degrees
+            # ...different wiring. A "null" identical to the observed graph
+            # would make any significance test against it meaningless.
+            assert {frozenset(e[:2]) for e in null_graph.edges} != observed_edges
+
+    def test_degree_preserving_reports_when_it_cannot_randomize(self):
+        """A graph too constrained to rewire raises instead of returning itself."""
+        # Triangle plus a pendant: double_edge_swap has essentially no valid
+        # swap, so there is no degree-preserving null to report.
+        edges = [(0, 1), (1, 2), (2, 0), (2, 3)]
+        graph = Graph(edges=edges, n_nodes=4, directed=False, weighted=False)
+
+        with pytest.raises(ValueError, match="degree-preserving"):
+            null_models(graph, method="degree_preserving", n_samples=5, seed=42)
 
     def test_invalid_method(self):
         """Test that invalid method raises error."""

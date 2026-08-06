@@ -268,19 +268,14 @@ class Graph:
                 src = np.array([e[0] for e in self.edges], dtype=np.int64)
                 dst = np.array([e[1] for e in self.edges], dtype=np.int64)
                 return src, dst, None
-        except (IndexError, TypeError):
-            import warnings
-
-            warnings.warn(
-                f"Edge format issue in edges_coo(). "
-                f"First edge: {self.edges[0] if self.edges else 'empty'}",
-                UserWarning,
-            )
-            return (
-                np.array([], dtype=np.int64),
-                np.array([], dtype=np.int64),
-                None if not self.weighted else np.array([]),
-            )
+        except (IndexError, TypeError) as e:
+            # Returning empty arrays here would silently turn a malformed edge
+            # list into an edgeless graph, and every metric computed from it
+            # into a confident wrong answer.
+            raise ValidationError(
+                f"edge list is malformed for weighted={self.weighted}: {e}. "
+                f"First edge: {self.edges[0] if self.edges else 'empty'}"
+            ) from e
 
     def to_edge_list(self) -> "EdgeList":
         """

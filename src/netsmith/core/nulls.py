@@ -75,15 +75,14 @@ def null_models(
         # Configuration model: preserve degree sequence
         degree_seq = [d for n, d in nx_graph.degree()]
         for _ in range(n_samples):
-            try:
-                null_g = nx.configuration_model(degree_seq, seed=rng)
-                # Remove self-loops and parallel edges
-                null_g = nx.Graph(null_g)
-                null_g.remove_edges_from(nx.selfloop_edges(null_g))
-                null_graphs.append(null_g)
-            except Exception:
-                # If configuration model fails, skip this sample
-                continue
+            # No try/except: a sample that cannot be generated is a real
+            # failure, and quietly returning fewer samples than asked for
+            # would skew whatever significance test consumes them.
+            null_g = nx.configuration_model(degree_seq, seed=rng)
+            # Remove self-loops and parallel edges
+            null_g = nx.Graph(null_g)
+            null_g.remove_edges_from(nx.selfloop_edges(null_g))
+            null_graphs.append(null_g)
 
     elif method == "erdos_renyi":
         # Erdos-Renyi: same number of nodes and edges
@@ -102,8 +101,14 @@ def null_models(
             if m > 0:
                 try:
                     nx.double_edge_swap(null_g, nswap=5 * m, max_tries=100 * m, seed=rng)
-                except Exception:
-                    pass
+                except nx.NetworkXAlgorithmError as e:
+                    # Too few swappable edges to randomize: the "null" graph
+                    # would just be the observed one, which is not a null model.
+                    raise ValueError(
+                        f"degree-preserving randomization failed on this graph: {e}. "
+                        f"Graphs with too few swappable edges have no meaningful "
+                        f"degree-preserving null."
+                    ) from e
             null_graphs.append(null_g)
 
     else:

@@ -119,9 +119,9 @@ netsmith/
 │   ├── engine/          # Backend implementations (Python/Rust)
 │   ├── api/             # Public API surface
 │   └── apps/            # Applications (CLI, reports, datasets)
-├── rust/crates/         # Rust extensions (performance-critical code)
-│   ├── netsmith-core/   # Core Rust algorithms
-│   └── netsmith-py/     # Python bindings
+├── rust/                # Rust kernels (one crate, `netsmith-rs`)
+│   └── src/             # algorithms, plus python.rs for the PyO3 bindings
+│                        # (behind the optional `python` feature)
 ├── tests/               # Test suite
 ├── examples/            # Example scripts and notebooks
 └── docs/                # Sphinx documentation
