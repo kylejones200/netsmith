@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Degree-preserving null models in Rust. `nulls::degree_preserving_rewire` and
+  `degree_preserving_rewire_samples` randomize a graph by double edge swap,
+  keeping every node's degree while destroying the wiring, with the samples
+  generated in parallel from per-sample seeds derived up front (so results do
+  not depend on thread scheduling). `null_models(method="degree_preserving")`
+  uses it when the extension is built and needs no NetworkX at all; the other
+  methods are unchanged. Measured: 5 samples of a 5,000-node / 25,000-edge
+  graph in 0.109s against NetworkX's 9.377s (86x), and 50 samples in 0.978s.
+  Rewiring reports the swaps it actually achieved rather than quietly returning
+  an under-randomized graph.
 - Multi-source shortest paths. `shortest_paths_from_source` rebuilt the
   adjacency list on every call, and that setup dominates when querying many
   sources over one fixed graph. `shortest_paths_from_adjacency` takes a

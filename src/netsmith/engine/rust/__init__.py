@@ -167,6 +167,26 @@ try:
         )
         return np.asarray(scores, dtype=np.float64)
 
+    def rewire_degree_preserving_rust(edges, n_samples, target_swaps, max_attempts, seed):
+        """Generate degree-preserving null models using the Rust backend.
+
+        Returns (edges, swaps, attempts): an array of rewired edge lists plus
+        what each sample actually achieved, so a sample that could not be
+        randomized is visible rather than silently returned as-is.
+        """
+        import numpy as np
+
+        from ..contracts import EdgeList  # noqa: F401
+
+        n = edges.n_nodes
+        _check_non_negative_nodes(edges)
+        edge_array = np.column_stack([edges.u, edges.v]).astype(np.uintp)
+
+        rewired, swaps, attempts = netsmith_rs.rewire_degree_preserving_rust(
+            n, edge_array, int(n_samples), int(target_swaps), int(max_attempts), int(seed)
+        )
+        return np.asarray(rewired, dtype=np.int64), list(swaps), list(attempts)
+
     def louvain_rust(edges, resolution=1.0, seed=None, max_levels=20):
         """Detect communities with the Louvain method using the Rust backend.
 
@@ -253,6 +273,9 @@ except ImportError:
     def betweenness_rust(edges, normalized=True, weight=None):
         raise ImportError("Rust backend not available")
 
+    def rewire_degree_preserving_rust(edges, n_samples, target_swaps, max_attempts, seed):
+        raise ImportError("Rust backend not available")
+
     def louvain_rust(edges, resolution=1.0, seed=None, max_levels=20):
         raise ImportError("Rust backend not available")
 
@@ -272,6 +295,7 @@ __all__ = [
     "shortest_paths_rust",
     "shortest_paths_multi_rust",
     "betweenness_rust",
+    "rewire_degree_preserving_rust",
     "louvain_rust",
     "modularity_rust",
     "communities_rust",

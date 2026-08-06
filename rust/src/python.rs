@@ -5,7 +5,8 @@
 //! The kernels do the validating, so nothing is checked twice and nothing is
 //! silently skipped.
 
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
+use ndarray::Array3;
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -15,6 +16,7 @@ use crate::{
     community::{louvain, modularity},
     degree::{degree_sequence, in_degree_sequence, out_degree_sequence, strength_sequence},
     metrics::{average_clustering, local_clustering, triangles_per_node},
+    nulls::degree_preserving_rewire_samples,
     paths::{
         connected_components, mean_shortest_path, shortest_paths_from_source,
         shortest_paths_from_sources,
@@ -269,6 +271,43 @@ fn modularity_rust(
     )?)
 }
 
+/// Generate degree-preserving null models by double edge swap
+///
+/// Returns (edges, swaps, attempts): an [n_samples, n_edges, 2] array of
+/// rewired edge lists, plus what each sample actually achieved. A sample whose
+/// swap count falls short of `target_swaps` is too constrained to randomize —
+/// the caller decides whether that is usable, but it is never hidden.
+#[pyfunction]
+#[pyo3(signature = (n, edges, n_samples, target_swaps, max_attempts, seed))]
+fn rewire_degree_preserving_rust(
+    py: Python<'_>,
+    n: usize,
+    edges: PyReadonlyArray2<usize>,
+    n_samples: usize,
+    target_swaps: usize,
+    max_attempts: usize,
+    seed: u64,
+) -> PyResult<(Py<PyArray3<usize>>, Vec<usize>, Vec<usize>)> {
+    let edge_list = edges_from_array(edges)?;
+    let m = edge_list.len();
+
+    let samples = py.allow_threads(|| {
+        degree_preserving_rewire_samples(n, &edge_list, n_samples, target_swaps, max_attempts, seed)
+    })?;
+
+    let mut rewired = Array3::<usize>::zeros((n_samples, m, 2));
+    samples.iter().enumerate().for_each(|(s, sample)| {
+        sample.edges.iter().enumerate().for_each(|(e, &(u, v))| {
+            rewired[[s, e, 0]] = u;
+            rewired[[s, e, 1]] = v;
+        });
+    });
+
+    let swaps = samples.iter().map(|s| s.swaps).collect();
+    let attempts = samples.iter().map(|s| s.attempts).collect();
+    Ok((rewired.into_pyarray(py).to_owned(), swaps, attempts))
+}
+
 /// Python module for netsmith_rs
 #[pymodule]
 fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -291,6 +330,9 @@ fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
 
     // Centrality
     m.add_function(wrap_pyfunction!(betweenness_rust, m)?)?;
+
+    // Null models
+    m.add_function(wrap_pyfunction!(rewire_degree_preserving_rust, m)?)?;
 
     // Community detection
     m.add_function(wrap_pyfunction!(louvain_rust, m)?)?;

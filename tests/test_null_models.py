@@ -82,6 +82,55 @@ class TestNullModels:
         with pytest.raises(ValueError, match="degree-preserving"):
             null_models(graph, method="degree_preserving", n_samples=5, seed=42)
 
+    def test_degree_preserving_backends_agree_on_the_invariant(self):
+        """Both backends preserve degrees and move the wiring.
+
+        They use different RNGs, so the graphs differ — what has to match is
+        the property that makes them null models at all.
+        """
+        import networkx as nx
+
+        source = nx.barabasi_albert_graph(60, 3, seed=7)
+        graph = Graph(edges=list(source.edges()), n_nodes=60, directed=False)
+        observed_degrees = sorted(graph.degree_sequence())
+        observed_edges = {frozenset(e[:2]) for e in graph.edges}
+
+        for backend in ("rust", "python"):
+            result = null_models(
+                graph, method="degree_preserving", n_samples=3, seed=42, backend=backend
+            )
+            assert len(result["graphs"]) == 3
+            for null_graph in result["graphs"]:
+                assert sorted(null_graph.degree_sequence()) == observed_degrees
+                assert {frozenset(e[:2]) for e in null_graph.edges} != observed_edges
+
+    def test_degree_preserving_is_reproducible(self):
+        """The same seed gives the same null models."""
+        import networkx as nx
+
+        source = nx.barabasi_albert_graph(40, 3, seed=3)
+        graph = Graph(edges=list(source.edges()), n_nodes=40, directed=False)
+
+        def wirings(seed):
+            result = null_models(
+                graph, method="degree_preserving", n_samples=2, seed=seed, backend="rust"
+            )
+            return [sorted(map(tuple, g.edges)) for g in result["graphs"]]
+
+        assert wirings(11) == wirings(11)
+        assert wirings(11) != wirings(12)
+
+    def test_degree_preserving_samples_are_independent(self):
+        """Samples in one call are different draws, not copies."""
+        import networkx as nx
+
+        source = nx.barabasi_albert_graph(50, 3, seed=5)
+        graph = Graph(edges=list(source.edges()), n_nodes=50, directed=False)
+
+        result = null_models(graph, method="degree_preserving", n_samples=4, seed=9, backend="rust")
+        wirings = {tuple(sorted(map(tuple, g.edges))) for g in result["graphs"]}
+        assert len(wirings) == 4
+
     def test_invalid_method(self):
         """Test that invalid method raises error."""
         edges = [(0, 1), (1, 2)]
