@@ -52,6 +52,11 @@ Core Layer
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: netsmith.core.community
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Engine Layer
 ------------
 .. automodule:: netsmith.engine

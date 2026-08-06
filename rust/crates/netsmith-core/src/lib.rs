@@ -8,11 +8,13 @@
 
 use ndarray::{Array1, Array2};
 
+pub mod community;
 pub mod degree;
 pub mod metrics;
 pub mod paths;
 
 // Re-export for convenience
+pub use community::*;
 pub use degree::*;
 pub use metrics::*;
 pub use paths::*;
