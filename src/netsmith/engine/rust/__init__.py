@@ -79,6 +79,20 @@ try:
         msp = netsmith_rs.mean_shortest_path_rust(n, edge_array)
         return msp
 
+    def _to_int64_distances(raw):
+        """Map the kernel's usize::MAX onto the shared UNREACHABLE sentinel.
+
+        Without this the two backends disagree on what "unreachable" is, and
+        `distances == UNREACHABLE` silently misses on one of them.
+        """
+        import numpy as np
+
+        from ..contracts import UNREACHABLE
+
+        raw = np.asarray(raw)
+        distances = np.where(raw == np.iinfo(np.uintp).max, UNREACHABLE, raw)
+        return distances.astype(np.int64)
+
     def shortest_paths_rust(edges, source, directed):
         """Compute shortest paths from source using Rust backend."""
         import numpy as np
@@ -91,7 +105,28 @@ try:
 
         edge_array = np.column_stack([u, v]).astype(np.uintp)
         dist = netsmith_rs.shortest_paths_rust(n, edge_array, source, directed)
-        return dist
+        return _to_int64_distances(dist)
+
+    def shortest_paths_multi_rust(edges, sources):
+        """Compute hop distances from several sources using the Rust backend.
+
+        Builds the adjacency list once and sweeps the sources in parallel.
+        """
+        import numpy as np
+
+        from ..contracts import EdgeList  # noqa: F401
+
+        n = edges.n_nodes
+        _check_non_negative_nodes(edges)
+        sources = np.asarray(sources, dtype=np.int64).ravel()
+        if sources.size and sources.min() < 0:
+            raise ValueError("source node ids must be non-negative")
+
+        edge_array = np.column_stack([edges.u, edges.v]).astype(np.uintp)
+        distances = netsmith_rs.shortest_paths_multi_rust(
+            n, edge_array, sources.astype(np.uintp), bool(edges.directed)
+        )
+        return _to_int64_distances(distances)
 
     def components_rust(edges):
         """Compute connected components using Rust backend."""
@@ -212,6 +247,9 @@ except ImportError:
     def shortest_paths_rust(edges, source, directed):
         raise ImportError("Rust backend not available")
 
+    def shortest_paths_multi_rust(edges, sources):
+        raise ImportError("Rust backend not available")
+
     def betweenness_rust(edges, normalized=True, weight=None):
         raise ImportError("Rust backend not available")
 
@@ -232,6 +270,7 @@ __all__ = [
     "mean_shortest_path_rust",
     "components_rust",
     "shortest_paths_rust",
+    "shortest_paths_multi_rust",
     "betweenness_rust",
     "louvain_rust",
     "modularity_rust",

@@ -5,7 +5,8 @@
 
 use std::collections::VecDeque;
 
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
+use rayon::prelude::*;
 
 use crate::{build_adjacency_list, GraphError};
 
@@ -44,17 +45,27 @@ fn breadth_first(adjacency: &[Vec<usize>], source: usize, distances: &mut [usize
 pub fn mean_shortest_path(n: usize, edges: &[(usize, usize)]) -> Result<f64, GraphError> {
     let adjacency = build_adjacency_list(n, edges, true)?;
 
-    let (total, pairs) = (0..n).fold((0usize, 0usize), |(total, pairs), source| {
-        let mut distances = vec![UNREACHABLE; n];
-        breadth_first(&adjacency, source, &mut distances);
+    // One sweep per source, and the sweeps share nothing but the immutable
+    // graph. Integer addition is associative, so the parallel reduction is
+    // exactly reproducible.
+    let (total, pairs) = (0..n)
+        .into_par_iter()
+        .map(|source| {
+            let mut distances = vec![UNREACHABLE; n];
+            breadth_first(&adjacency, source, &mut distances);
 
-        // Each unordered pair is counted once, from its lower-numbered end.
-        let reached = distances[source + 1..]
-            .iter()
-            .filter(|&&d| d != UNREACHABLE)
-            .copied();
-        reached.fold((total, pairs), |(total, pairs), d| (total + d, pairs + 1))
-    });
+            // Each unordered pair is counted once, from its lower-numbered end.
+            distances[source + 1..]
+                .iter()
+                .filter(|&&d| d != UNREACHABLE)
+                .fold((0usize, 0usize), |(total, pairs), &d| {
+                    (total + d, pairs + 1)
+                })
+        })
+        .reduce(
+            || (0usize, 0usize),
+            |(total, pairs), (t, p)| (total + t, pairs + p),
+        );
 
     Ok(if pairs > 0 {
         total as f64 / pairs as f64
@@ -75,6 +86,24 @@ pub fn shortest_paths_from_source(
     source: usize,
     directed: bool,
 ) -> Result<Array1<usize>, GraphError> {
+    let adjacency = build_adjacency_list(n, edges, !directed)?;
+    shortest_paths_from_adjacency(&adjacency, source)
+}
+
+/// Compute hop distances from `source` over an adjacency list you already have.
+///
+/// [`shortest_paths_from_source`] rebuilds the adjacency on every call, which
+/// dominates the cost when querying many sources over one graph. Build it once
+/// with [`build_adjacency_list`] and call this instead.
+///
+/// Returns [`GraphError::NodeOutOfRange`] if `source` is not a node of the
+/// graph. "There is no such node" and "that node reaches nothing" are different
+/// facts, and an all-unreachable row cannot tell you which one you have.
+pub fn shortest_paths_from_adjacency(
+    adjacency: &[Vec<usize>],
+    source: usize,
+) -> Result<Array1<usize>, GraphError> {
+    let n = adjacency.len();
     if source >= n {
         return Err(GraphError::NodeOutOfRange {
             index: 0,
@@ -83,11 +112,38 @@ pub fn shortest_paths_from_source(
             n_nodes: n,
         });
     }
-    let adjacency = build_adjacency_list(n, edges, !directed)?;
 
     let mut distances = vec![UNREACHABLE; n];
-    breadth_first(&adjacency, source, &mut distances);
+    breadth_first(adjacency, source, &mut distances);
     Ok(Array1::from_vec(distances))
+}
+
+/// Compute hop distances from each of several sources.
+///
+/// Builds the adjacency list once and sweeps the sources in parallel — they are
+/// independent, sharing nothing but the immutable graph. Row `i` holds the
+/// distances from `sources[i]`.
+///
+/// Returns [`GraphError::NodeOutOfRange`] if any edge, or any source, names a
+/// node that does not exist.
+pub fn shortest_paths_from_sources(
+    n: usize,
+    edges: &[(usize, usize)],
+    sources: &[usize],
+    directed: bool,
+) -> Result<Array2<usize>, GraphError> {
+    let adjacency = build_adjacency_list(n, edges, !directed)?;
+
+    let rows = sources
+        .par_iter()
+        .map(|&source| shortest_paths_from_adjacency(&adjacency, source))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut distances = Array2::from_elem((sources.len(), n), UNREACHABLE);
+    rows.into_iter()
+        .enumerate()
+        .for_each(|(i, row)| distances.row_mut(i).assign(&row));
+    Ok(distances)
 }
 
 /// Label each node with its connected component.
@@ -186,6 +242,78 @@ mod tests {
         let (count, labels) = connected_components(5, &[(0, 1), (3, 4)]).unwrap();
         assert_eq!(count, 3);
         assert_eq!(labels.to_vec(), vec![0, 0, 1, 2, 2]);
+    }
+
+    /// Two triangles with no edge between them.
+    fn two_components() -> (usize, Vec<(usize, usize)>) {
+        (6, vec![(0, 1), (1, 2), (0, 2), (3, 4), (4, 5), (3, 5)])
+    }
+
+    #[test]
+    fn adjacency_variant_matches_the_edge_list_variant() {
+        let cases = [(6, vec![(0, 1), (1, 2), (2, 3), (3, 4)]), two_components()];
+        for (n, edges) in cases {
+            for directed in [false, true] {
+                let adjacency = build_adjacency_list(n, &edges, !directed).unwrap();
+                for source in 0..n {
+                    assert_eq!(
+                        shortest_paths_from_source(n, &edges, source, directed).unwrap(),
+                        shortest_paths_from_adjacency(&adjacency, source).unwrap(),
+                        "source {source}, directed {directed}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn multi_source_rows_match_single_source_calls() {
+        let (n, edges) = two_components();
+        let sources = [0, 3, 5, 1];
+        let many = shortest_paths_from_sources(n, &edges, &sources, false).unwrap();
+
+        assert_eq!(many.shape(), &[sources.len(), n]);
+        for (i, &source) in sources.iter().enumerate() {
+            let one = shortest_paths_from_source(n, &edges, source, false).unwrap();
+            assert_eq!(many.row(i).to_vec(), one.to_vec(), "source {source}");
+        }
+    }
+
+    #[test]
+    fn multi_source_respects_direction() {
+        let edges = vec![(0, 1), (1, 2)];
+        let forward = shortest_paths_from_sources(3, &edges, &[0, 2], true).unwrap();
+        assert_eq!(forward[[0, 2]], 2);
+        assert_eq!(forward[[1, 0]], UNREACHABLE, "directed edges are one-way");
+
+        let undirected = shortest_paths_from_sources(3, &edges, &[2], false).unwrap();
+        assert_eq!(undirected[[0, 0]], 2);
+    }
+
+    #[test]
+    fn no_sources_yields_no_rows() {
+        let (n, edges) = two_components();
+        let empty = shortest_paths_from_sources(n, &edges, &[], false).unwrap();
+        assert_eq!(empty.shape(), &[0, n]);
+    }
+
+    #[test]
+    fn a_source_outside_the_graph_is_an_error_not_an_empty_row() {
+        // An all-unreachable row cannot distinguish "node 9 reaches nothing"
+        // from "there is no node 9".
+        let (n, edges) = two_components();
+        let adjacency = build_adjacency_list(n, &edges, true).unwrap();
+
+        assert_eq!(
+            shortest_paths_from_adjacency(&adjacency, n + 3).unwrap_err(),
+            GraphError::NodeOutOfRange {
+                index: 0,
+                u: n + 3,
+                v: n + 3,
+                n_nodes: n,
+            }
+        );
+        assert!(shortest_paths_from_sources(n, &edges, &[0, n + 3], false).is_err());
     }
 
     #[test]

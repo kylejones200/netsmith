@@ -5,7 +5,7 @@
 //! The kernels do the validating, so nothing is checked twice and nothing is
 //! silently skipped.
 
-use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -15,7 +15,10 @@ use crate::{
     community::{louvain, modularity},
     degree::{degree_sequence, in_degree_sequence, out_degree_sequence, strength_sequence},
     metrics::{average_clustering, local_clustering, triangles_per_node},
-    paths::{connected_components, mean_shortest_path, shortest_paths_from_source},
+    paths::{
+        connected_components, mean_shortest_path, shortest_paths_from_source,
+        shortest_paths_from_sources,
+    },
     GraphError,
 };
 
@@ -155,6 +158,27 @@ fn shortest_paths_rust(
     Ok(distances.into_pyarray(py).to_owned())
 }
 
+/// Compute shortest paths from several sources at once
+///
+/// Builds the adjacency list once and sweeps the sources in parallel, so this
+/// costs far less than one `shortest_paths_rust` call per source. Row `i` holds
+/// the distances from `sources[i]`.
+#[pyfunction]
+fn shortest_paths_multi_rust(
+    py: Python<'_>,
+    n: usize,
+    edges: PyReadonlyArray2<usize>,
+    sources: PyReadonlyArray1<usize>,
+    directed: bool,
+) -> PyResult<Py<PyArray2<usize>>> {
+    let edge_list = edges_from_array(edges)?;
+    let sources = sources.as_array().to_vec();
+
+    let distances =
+        py.allow_threads(|| shortest_paths_from_sources(n, &edge_list, &sources, directed))?;
+    Ok(distances.into_pyarray(py).to_owned())
+}
+
 /// Compute connected components
 #[pyfunction]
 fn connected_components_rust(
@@ -262,6 +286,7 @@ fn netsmith_rs(_py: Python, m: &PyModule) -> PyResult<()> {
     // Path functions
     m.add_function(wrap_pyfunction!(mean_shortest_path_rust, m)?)?;
     m.add_function(wrap_pyfunction!(shortest_paths_rust, m)?)?;
+    m.add_function(wrap_pyfunction!(shortest_paths_multi_rust, m)?)?;
     m.add_function(wrap_pyfunction!(connected_components_rust, m)?)?;
 
     // Centrality

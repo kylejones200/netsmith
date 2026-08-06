@@ -14,6 +14,7 @@ from .dispatch import (
     compute_degree,
     compute_pagerank,
     compute_shortest_paths,
+    compute_shortest_paths_multi,
 )
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "compute_clustering",
     "compute_components",
     "compute_shortest_paths",
+    "compute_shortest_paths_multi",
     "EdgeList",
     "GraphData",
 ]
