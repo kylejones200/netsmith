@@ -1,6 +1,7 @@
 """Tests for netsmith.ona.three_es — pure scoring functions."""
 
 import pytest
+
 from netsmith.ona import (
     Communication,
     ThreeEsResult,

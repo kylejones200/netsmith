@@ -8,7 +8,8 @@ A high-performance network analysis library with Rust acceleration.
 # (it sat at 0.2.0 through the 0.2.1 and 0.2.2 releases). The fallback covers running
 # from a source tree that was never installed.
 try:
-    from importlib.metadata import PackageNotFoundError, version as _version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _version
 
     __version__ = _version("netsmith")
 except (ImportError, PackageNotFoundError):  # pragma: no cover

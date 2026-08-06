@@ -6,6 +6,7 @@ Three E's scoring (Cross, Borgatti & Parker 2002; Burt 2004) and silo detection.
     from netsmith.ona import score_team, detect_silos, Communication
 """
 
+from .silo import SiloResult, detect_silos
 from .three_es import (
     Communication,
     ThreeEsResult,
@@ -16,7 +17,6 @@ from .three_es import (
     overall_score,
     score_team,
 )
-from .silo import SiloResult, detect_silos
 
 __all__ = [
     "Communication",

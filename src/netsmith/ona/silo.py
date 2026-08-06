@@ -10,7 +10,7 @@ Reference: Burt (2004) — structural holes and good ideas.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 __all__ = ["SiloResult", "detect_silos"]
