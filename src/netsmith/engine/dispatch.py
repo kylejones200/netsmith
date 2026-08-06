@@ -246,6 +246,54 @@ def compute_shortest_paths(
     return shortest_paths_python(edges, source, target, weight)
 
 
+def compute_betweenness(
+    edges: EdgeList,
+    normalized: bool = True,
+    weight: Optional[bool] = None,
+    backend: Backend = "auto",
+) -> NDArray[np.float64]:
+    """
+    Compute betweenness centrality (Brandes).
+
+    Parameters
+    ----------
+    edges : EdgeList
+        Edge list. Self-loops are ignored; parallel edges collapse to the
+        lightest one.
+    normalized : bool, default True
+        Divide by the number of ordered pairs excluding the node, giving
+        scores in [0, 1]
+    weight : bool, optional
+        Read edge weights as shortest-path distances. Defaults to using them
+        when the edge list carries them; weights must be strictly positive.
+    backend : str, default "auto"
+        Backend: "auto", "python", or "rust"
+
+    Returns
+    -------
+    betweenness : array (n_nodes,)
+        Share of shortest paths between other pairs running through each node
+    """
+    backend_name = _detect_backend(backend)
+
+    if backend_name == "rust":
+        try:
+            from .rust import betweenness_rust
+
+            return betweenness_rust(edges, normalized=normalized, weight=weight)
+        except ImportError:
+            # Expected: Rust backend not available, fall back silently
+            logger.debug("Rust backend not available for betweenness, using Python")
+        except RuntimeError as e:
+            # Unexpected: Rust backend failed, log and raise
+            logger.error(f"Rust backend error in betweenness: {e}", exc_info=True)
+            raise BackendError(f"Rust backend failed: {e}") from e
+
+    from .python import betweenness_python
+
+    return betweenness_python(edges, normalized=normalized, weight=weight)
+
+
 def compute_communities(
     edges: EdgeList, method: str = "louvain", backend: Backend = "auto"
 ) -> NDArray[np.int64]:

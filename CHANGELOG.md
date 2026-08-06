@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Betweenness centrality — a Rust `centrality` module in `netsmith-core`
+  implementing Brandes' algorithm, with the per-source shortest-path sweeps run
+  in parallel across cores via rayon. Handles unweighted (BFS) and weighted
+  (Dijkstra) graphs, directed and undirected, normalized or raw, and matches
+  `networkx.betweenness_centrality` to 1e-9. `centrality(graph,
+  method="betweenness")` previously raised `NotImplementedError`; it now also
+  reaches `netsmith.api.betweenness` and `compute_betweenness` in the engine,
+  with a pure-Python Brandes fallback when the extension is missing.
+  Measured on this machine: 0.34s for 5,000 nodes / 25,000 edges where NetworkX
+  takes 29.7s (87x), and 110x on the weighted equivalent. 10,000 nodes in 1.4s.
 - Rust `community` module in `netsmith-core`: a pure-Rust Louvain implementation
   (local moving + graph aggregation) plus a `modularity` scorer. Both support
   edge weights and the resolution parameter `gamma`, and are exposed to Python

@@ -107,6 +107,31 @@ try:
         n_components, labels = netsmith_rs.connected_components_rust(n, edge_array)
         return labels
 
+    def betweenness_rust(edges, normalized=True, weight=None):
+        """Compute betweenness centrality using the Rust backend.
+
+        Self-loops are ignored and parallel edges collapse to the lightest one.
+        Weights, when used, are read as shortest-path distances and must be
+        strictly positive.
+        """
+        import numpy as np
+
+        from ..contracts import EdgeList  # noqa: F401
+
+        n = edges.n_nodes
+        _check_non_negative_nodes(edges)
+        weighted = (edges.w is not None) if weight is None else bool(weight)
+        if weighted and edges.w is None:
+            raise ValueError("weight=True requires an edge list with weights")
+
+        edge_array = np.column_stack([edges.u, edges.v]).astype(np.uintp)
+        weights = np.ascontiguousarray(edges.w, dtype=np.float64) if weighted else None
+
+        scores = netsmith_rs.betweenness_rust(
+            n, edge_array, weights, bool(edges.directed), bool(normalized)
+        )
+        return np.asarray(scores, dtype=np.float64)
+
     def louvain_rust(edges, resolution=1.0, seed=None, max_levels=20):
         """Detect communities with the Louvain method using the Rust backend.
 
@@ -187,6 +212,9 @@ except ImportError:
     def shortest_paths_rust(edges, source, directed):
         raise ImportError("Rust backend not available")
 
+    def betweenness_rust(edges, normalized=True, weight=None):
+        raise ImportError("Rust backend not available")
+
     def louvain_rust(edges, resolution=1.0, seed=None, max_levels=20):
         raise ImportError("Rust backend not available")
 
@@ -204,6 +232,7 @@ __all__ = [
     "mean_shortest_path_rust",
     "components_rust",
     "shortest_paths_rust",
+    "betweenness_rust",
     "louvain_rust",
     "modularity_rust",
     "communities_rust",
