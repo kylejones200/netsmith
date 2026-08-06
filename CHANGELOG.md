@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/unit/test_cli.py` could not even be collected.
 
 ### Changed
+- flake8 configuration is consolidated in `setup.cfg` at 100 characters, matching
+  `[tool.black] line-length`. It disagreed at 88 while both workflows passed
+  `--max-line-length=100` on the command line; the workflows now take their
+  options from the file. The dead `[tool:pytest]` section is gone — `pytest.ini`
+  has always won, and pytest said so on every run.
 - `louvain_hooks` and `modularity` now default to the built-in kernels instead of
   NetworkX, so community detection no longer requires NetworkX. Pass
   `backend="networkx"` for the old path. Partitions may differ from NetworkX's
@@ -55,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI installed a hand-maintained package list that omitted the CLI's
   dependencies. The workflows now install `.[dev,networkx,scipy]`, so the
   declared dependencies are the single source of truth.
+- The `netsmith_rs` stub referenced a name that a star import does not bind. It
+  worked only because importing a submodule happens to set it on the package, and
+  the guard would have raised `NameError`, not the `ImportError` it caught.
 - `load_edges` could not read a CSV or Parquet file on an install without
   polars: the pandas fallback referenced an unbound `pl`, so every path raised
   `UnboundLocalError`. Reading now works with polars or pandas, and raises a

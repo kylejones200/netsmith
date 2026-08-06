@@ -31,7 +31,7 @@ jobs:
         run: isort --check-only src/ tests/ examples/
       
       - name: Lint with flake8
-        run: flake8 src/ tests/ examples/ --max-line-length=100 --extend-ignore=E203,W503
+        run: flake8 src/ tests/ examples/   # options come from setup.cfg
       
       - name: Type check with mypy
         run: mypy src/netsmith --ignore-missing-imports
