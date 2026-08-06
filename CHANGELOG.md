@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Rust `community` module in `netsmith-core`: a pure-Rust Louvain implementation
+  (local moving + graph aggregation) plus a `modularity` scorer. Both support
+  edge weights and the resolution parameter `gamma`, and are exposed to Python
+  as `netsmith_rs.louvain_rust` / `netsmith_rs.modularity_rust`.
+- `louvain_python` and `modularity_python` in `netsmith.engine.python`: a
+  pure-Python Louvain mirroring the Rust kernel, used when the extension is
+  unavailable.
+- `backend` argument on `netsmith.core.community.louvain_hooks` and
+  `modularity` — `"auto"` (Rust when built, else Python), `"rust"`, `"python"`,
+  or `"networkx"` for the previous NetworkX-backed behaviour.
+
+### Changed
+- `louvain_hooks` and `modularity` now default to the built-in kernels instead of
+  NetworkX, so community detection no longer requires NetworkX. Pass
+  `backend="networkx"` for the old path. Partitions may differ from NetworkX's
+  (Louvain is a stochastic greedy heuristic); modularity values are computed
+  from the same definition and match NetworkX to floating-point tolerance.
+
+### Fixed
+- `netsmith.engine.python.communities_python` returned an all-zeros placeholder,
+  so `compute_communities` / `netsmith.api.communities` silently reported "every
+  node in one community" whenever the Rust extension was missing. It now runs
+  Louvain, and an unsupported `method` raises `ValueError` instead of returning
+  a fake partition.
+
 ## [0.6.0] - 2024-12-20
 
 ### Added

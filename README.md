@@ -11,7 +11,7 @@ Pure math, no I/O, no global state. Located in `src/netsmith/core/`:
 - `graph.py`: Core graph types (`Graph`, `GraphView`)
 - `metrics.py`: Degree, centrality, assortativity, clustering, k-core, components
 - `paths.py`: Shortest paths, reachability, walk metrics
-- `community.py`: Modularity, Louvain hooks, label propagation hooks
+- `community.py`: Modularity and Louvain (built-in kernels), label propagation hooks (NetworkX)
 - `nulls.py`: Null models and permutation tests
 - `stats.py`: Distributions, confidence intervals, bootstrap
 
@@ -107,7 +107,7 @@ pip install netsmith
 **With optional dependencies:**
 ```bash
 pip install netsmith[scipy]      # For sparse matrices (adjacency_matrix format='sparse'/'coo')
-pip install netsmith[networkx]   # For community detection, null models, k-core decomposition
+pip install netsmith[networkx]   # For label propagation, null models, k-core decomposition
 pip install netsmith[pandas]     # For pandas data loading
 pip install netsmith[polars]     # For polars data loading
 
@@ -118,9 +118,9 @@ pip install netsmith[scipy,networkx,pandas,polars]
 pip install netsmith[dev]
 ```
 
-**Note:** Core functionality (degree, paths, components, clustering) works with just `numpy`. 
-`scipy` is only needed for sparse matrix formats, and `networkx` is only needed for advanced 
-community detection and null models.
+**Note:** Core functionality (degree, paths, components, clustering, Louvain community
+detection) works with just `numpy`. `scipy` is only needed for sparse matrix formats, and
+`networkx` is only needed for label propagation and null models.
 
 ## Rust Backend
 
@@ -144,9 +144,8 @@ maturin develop --release
 - pyproject.toml configuration
 
 🚧 **In Progress:**
-- Rust backend implementation
+- Rust backend implementation (degree, clustering, paths, components, Louvain done)
 - Full metric implementations
-- Community detection algorithms
 - Test suite
 
 📋 **Planned:**

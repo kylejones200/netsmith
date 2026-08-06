@@ -2,15 +2,44 @@
 Core community detection: modularity, Louvain hooks, label propagation hooks.
 """
 
-from typing import Dict, Optional
+import logging
+from typing import Dict, Literal, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
 from .graph import Graph
 
+logger = logging.getLogger(__name__)
 
-def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None) -> float:
+CommunityBackend = Literal["auto", "rust", "python", "networkx"]
+
+
+def _resolve_backend(backend: CommunityBackend) -> str:
+    """Pick the backend to run on, preferring the Rust kernel."""
+    if backend not in ("auto", "rust", "python", "networkx"):
+        raise ValueError(
+            f"unknown backend: {backend!r} (expected 'auto', 'rust', 'python' or 'networkx')"
+        )
+    if backend != "auto":
+        if backend == "rust":
+            from ..engine.rust import _RUST_AVAILABLE
+
+            if not _RUST_AVAILABLE:
+                raise ImportError("Rust backend requested but netsmith_rs is not available")
+        return backend
+
+    from ..engine.rust import _RUST_AVAILABLE
+
+    return "rust" if _RUST_AVAILABLE else "python"
+
+
+def modularity(
+    graph: Graph,
+    communities: NDArray,
+    weight: Optional[str] = None,
+    backend: CommunityBackend = "auto",
+) -> float:
     """
     Compute modularity score for community assignments.
 
@@ -23,6 +52,10 @@ def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None)
         Nodes with the same ID are in the same community.
     weight : str, optional
         Edge weight attribute name (currently ignored; uses graph weights if available)
+    backend : str, default "auto"
+        "auto" (Rust if available, else Python), "rust", "python", or
+        "networkx". All backends use the same definition and agree to
+        floating-point tolerance.
 
     Returns
     -------
@@ -34,7 +67,7 @@ def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None)
     Raises
     ------
     ImportError
-        If NetworkX is not installed (required for modularity computation)
+        If the "networkx" backend is selected and NetworkX is not installed
 
     Notes
     -----
@@ -42,6 +75,19 @@ def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None)
     the fraction of edges within communities to the expected fraction in
     a random graph with the same degree sequence.
     """
+    backend_name = _resolve_backend(backend)
+
+    if backend_name in ("rust", "python"):
+        edges = graph.to_edge_list()
+        if backend_name == "rust":
+            from ..engine.rust import modularity_rust
+
+            return modularity_rust(edges, np.asarray(communities))
+
+        from ..engine.python import modularity_python
+
+        return modularity_python(edges, np.asarray(communities))
+
     # Convert to NetworkX for modularity computation
     try:
         import networkx  # noqa: F401
@@ -68,24 +114,49 @@ def modularity(graph: Graph, communities: NDArray, weight: Optional[str] = None)
     return float(modularity_score)
 
 
-def louvain_hooks(graph: Graph, resolution: float = 1.0, seed: Optional[int] = None) -> Dict:
+def louvain_hooks(
+    graph: Graph,
+    resolution: float = 1.0,
+    seed: Optional[int] = None,
+    backend: CommunityBackend = "auto",
+) -> Dict:
     """
     Louvain community detection hooks.
 
     Parameters
     ----------
     graph : Graph
-        Input graph
+        Input graph. Directed graphs are treated as undirected; parallel and
+        reciprocal edges are merged by summing their weights.
     resolution : float, default 1.0
-        Resolution parameter
+        Resolution parameter. Higher values yield smaller communities.
     seed : int, optional
-        Random seed
+        Random seed for the node visit order. Each backend is reproducible for
+        a given seed, but the same seed does not carry across backends.
+    backend : str, default "auto"
+        "auto" (Rust if available, else Python), "rust", "python", or
+        "networkx".
 
     Returns
     -------
     result : dict
-        Dictionary with community assignments and modularity
+        Dictionary with keys "communities" (array of community ids),
+        "modularity", and "n_communities". The Rust and Python backends also
+        report "n_levels", the number of aggregation levels performed.
     """
+    backend_name = _resolve_backend(backend)
+
+    if backend_name in ("rust", "python"):
+        edges = graph.to_edge_list()
+        if backend_name == "rust":
+            from ..engine.rust import louvain_rust
+
+            return louvain_rust(edges, resolution=resolution, seed=seed)
+
+        from ..engine.python import louvain_python
+
+        return louvain_python(edges, resolution=resolution, seed=seed)
+
     # Convert to NetworkX
     try:
         import networkx  # noqa: F401
