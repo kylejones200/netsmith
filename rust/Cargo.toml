@@ -1,6 +1,6 @@
 [package]
 name = "netsmith-rs"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Kyle T. Jones <kyle@kyletjones.com>"]
 edition = "2021"
 description = "Network analysis kernels for NetSmith, with optional Python bindings"
