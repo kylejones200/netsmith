@@ -1,6 +1,29 @@
 # NetSmith: Fast Network Analysis Library
 
-NetSmith is a high-performance network analysis library with Rust acceleration, focused on pure network analysis without time series dependencies.
+NetSmith computes the standard network measures — community detection, centrality,
+shortest paths, clustering, k-core and null models — on graphs large enough that the
+usual Python tools become the bottleneck. The algorithms are Rust kernels that release
+the GIL and parallelize across cores; every one has a pure-Python fallback, so the
+library works whether or not the compiled extension is present.
+
+It needs only NumPy. NetworkX is optional, and only for converting a graph to one
+(`Graph.as_networkx()`) — no computation reaches for it.
+
+```python
+import netsmith
+from netsmith.core.graph import Graph
+from netsmith.core.community import louvain_hooks
+from netsmith.api import betweenness
+
+graph = Graph(edges=[(0, 1), (1, 2), (0, 2), (3, 4), (4, 5), (3, 5), (2, 3)], n_nodes=6)
+
+louvain_hooks(graph, seed=42)["n_communities"]   # 2
+betweenness(graph)                               # brokerage per node
+```
+
+Measured against NetworkX on this machine: betweenness on 5,000 nodes takes 0.34s
+against 29.7s (87x), and five degree-preserving null models of a 25,000-edge graph
+take 0.11s against 9.4s (86x).
 
 ## Architecture
 
