@@ -21,16 +21,19 @@ pub mod centrality;
 pub mod community;
 pub mod degree;
 pub mod metrics;
+pub mod nulls;
 pub mod paths;
 
 #[cfg(feature = "python")]
 mod python;
+mod rng;
 
 // Re-export for convenience
 pub use centrality::*;
 pub use community::*;
 pub use degree::*;
 pub use metrics::*;
+pub use nulls::*;
 pub use paths::*;
 
 /// Everything a kernel can reject.
